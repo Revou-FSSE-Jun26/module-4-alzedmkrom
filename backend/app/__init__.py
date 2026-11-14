@@ -33,6 +33,9 @@ def create_app(verify_db: bool = True) -> Flask:
         process_revision_directives=skip_empty_revision,
     )
     from app import models  # noqa: F401  (register tables)
+    from app.seed import seed_command
+
+    app.cli.add_command(seed_command)
 
     if verify_db:
         with app.app_context():

@@ -153,8 +153,8 @@ All paths below are relative to `/backend`. Test files live in `tests/database/`
     - **Property 21: Search is a case-insensitive substring match on title or description**
     - **Validates: Requirements 7.6**
 
-- [ ] 8. Implement the seed command
-  - [ ] 8.1 Implement `app/seed.py` and register it
+- [x] 8. Implement the seed command
+  - [x] 8.1 Implement `app/seed.py` and register it
     - `flask seed [--force]`: refuses on Railway without `--force`; deterministic `uuid5` ids; `postgresql.insert(...).on_conflict_do_nothing()`; one transaction
     - Rows: 2 users (`alice@revotask.test`, `bob@revotask.test`, password hash from `SEED_PASSWORD`), 1 board, memberships `admin` and `member`, 3 columns (orders 1.0, 2.0, 3.0), 5 cards (2, 2, 1)
     - Print `Seeding finished.` and exit 0 on success; roll back, print `Seeding failed: <cause>` and exit 1 on error

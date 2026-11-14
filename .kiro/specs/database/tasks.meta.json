@@ -251,6 +251,25 @@
         "chatSessionId": "sess_c03e5494-965c-4062-bd45-3cbf160e7184",
         "timestamp": 1794658202816
       }
+    ],
+    "8.1 Implement `app/seed.py` and register it": [
+      {
+        "executionId": "9e0fc58a-90c3-45f0-9c3c-71d85fc7b777",
+        "chatSessionId": "sess_37285d42-2d2d-47c1-958c-5439310fcabf",
+        "timestamp": 1794660289357
+      },
+      {
+        "executionId": "9e0fc58a-90c3-45f0-9c3c-71d85fc7b777",
+        "chatSessionId": "sess_37285d42-2d2d-47c1-958c-5439310fcabf",
+        "timestamp": 1794660362404
+      }
+    ],
+    "8. Implement the seed command": [
+      {
+        "executionId": "9e0fc58a-90c3-45f0-9c3c-71d85fc7b777",
+        "chatSessionId": "sess_37285d42-2d2d-47c1-958c-5439310fcabf",
+        "timestamp": 1794660362508
+      }
     ]
   }
 }
