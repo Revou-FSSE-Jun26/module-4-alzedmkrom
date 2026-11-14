@@ -16,8 +16,8 @@ All paths below are relative to `/backend`. Test files live in `tests/database/`
     - Add `pytest.ini` (test paths, Hypothesis profile placeholder) and a `.env.example` listing `DATABASE_URL`, `DB_REQUIRE_SSL`, `SEED_PASSWORD` with no real credentials
     - _Requirements: 11.1, 11.2_
 
-- [ ] 2. Implement database configuration and connection handling
-  - [ ] 2.1 Implement `app/db_config.py`
+- [x] 2. Implement database configuration and connection handling
+  - [x] 2.1 Implement `app/db_config.py`
     - Add `DatabaseConfigError`, `DatabaseUnreachableError`, `CONNECT_TIMEOUT_S = 10`, `MAX_CONNECT_ATTEMPTS = 3`
     - Implement `normalize_database_url`, `running_on_railway`, `engine_options` (`pool_pre_ping`, `connect_timeout`, `sslmode=require` on Railway or when `DB_REQUIRE_SSL=1`) and `verify_connection` (3 attempts, injected `sleep`, password hidden, driver exception chain suppressed)
     - _Requirements: 11.2, 11.3, 11.4, 11.5, 11.6, 11.7_
