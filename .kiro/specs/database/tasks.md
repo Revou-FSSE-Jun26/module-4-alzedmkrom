@@ -8,8 +8,8 @@ All paths below are relative to `/backend`. Test files live in `tests/database/`
 
 ## Tasks
 
-- [ ] 1. Set up project scaffolding and extensions
-  - [ ] 1.1 Create the backend package structure, dependencies and extensions module
+- [x] 1. Set up project scaffolding and extensions
+  - [x] 1.1 Create the backend package structure, dependencies and extensions module
     - Create `app/__init__.py` (empty for now), `app/extensions.py`, `app/models/__init__.py` (empty for now), `tests/__init__.py`, `tests/database/__init__.py`
     - Create `requirements.txt` pinning Flask, Flask-SQLAlchemy (SQLAlchemy 2.x), Flask-Migrate (4.x, current Alembic), `psycopg2-binary`, `click`, `pytest`, `hypothesis`
     - Implement `app/extensions.py` with `NAMING_CONVENTION`, `db = SQLAlchemy(metadata=MetaData(naming_convention=...))` and `migrate = Migrate()`
