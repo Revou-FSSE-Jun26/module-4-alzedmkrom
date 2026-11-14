@@ -108,8 +108,8 @@ All paths below are relative to `/backend`. Test files live in `tests/database/`
     - Verify exactly one head with `flask db heads`
     - _Requirements: 1.6, 4.4, 5.7, 9.9, 10.1, 10.2, 10.3, 10.4, 10.6_
 
-- [ ] 6. Set up test infrastructure
-  - [ ] 6.1 Create `tests/database/conftest.py` and shared helpers
+- [x] 6. Set up test infrastructure
+  - [x] 6.1 Create `tests/database/conftest.py` and shared helpers
     - Session fixture that builds the schema with `flask db upgrade` against a PostgreSQL 16 database taken from an environment variable (never SQLite)
     - Per-example transaction fixture that rolls back, with `begin_nested()` helper for statements expected to fail
     - Hypothesis settings profile (`max_examples=100`, `deadline=None`)
