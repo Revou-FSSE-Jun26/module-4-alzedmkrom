@@ -60,38 +60,38 @@ All paths below are relative to `/backend`. Test files live in `tests/database/`
     - **Property 23: Blank `DATABASE_URL` is rejected before an engine exists**
     - **Validates: Requirements 11.5**
 
-- [ ] 4. Implement models, one per table
-  - [ ] 4.1 Implement `User` in `app/models/user.py`
+- [x] 4. Implement models, one per table
+  - [x] 4.1 Implement `User` in `app/models/user.py`
     - Columns `name`, `email`, `password_hash`; checks `name_length` (1 to 255) and `email_length` (3 to 254); unique functional index `uq_users_email_lower` on `lower(email)`; no plaintext password column
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.7_
 
-  - [ ] 4.2 Implement `Board` and `BoardMember` in `app/models/board.py`
+  - [x] 4.2 Implement `Board` and `BoardMember` in `app/models/board.py`
     - `Board`: `name` check (1 to 255), `owner_id` FK `ON DELETE RESTRICT`, relationships with `passive_deletes=True`
     - `BoardMember`: composite PK (`board_id`, `user_id`), FKs `ON DELETE CASCADE`, `role` check `IN ('member', 'admin')`, index `ix_board_members_user_id`
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.6, 2.7, 2.8, 2.9, 8.3, 8.6, 9.5_
 
-  - [ ] 4.3 Implement `BoardColumn` in `app/models/column.py`
+  - [x] 4.3 Implement `BoardColumn` in `app/models/column.py`
     - Table `columns`; `board_id` FK `CASCADE`; `title` check (1 to 255); `order = db.Column(db.Float, nullable=False)` with check `"order" > 0 AND "order" < 'Infinity'`; index `ix_columns_board_id_order`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 8.3, 9.3_
 
-  - [ ] 4.4 Implement `Card` in `app/models/card.py`
+  - [x] 4.4 Implement `Card` in `app/models/card.py`
     - `column_id` FK `CASCADE`, `assignee_id` FK `SET NULL` nullable, `created_by` FK `RESTRICT` not null, `order` Float with the same positive-finite check, `completed_at` timestamptz, title and description length checks
     - Indexes `ix_cards_column_id_order`, `ix_cards_assignee_id`, `ix_cards_completed_at`
     - _Requirements: 4.1, 4.2, 4.3, 4.5, 4.6, 4.7, 4.8, 4.9, 8.4, 9.1, 9.2, 9.7_
 
-  - [ ] 4.5 Implement `Comment` in `app/models/comment.py`
+  - [x] 4.5 Implement `Comment` in `app/models/comment.py`
     - `card_id` FK `CASCADE`, `user_id` FK `RESTRICT`, `body` check `body ~ '\S' AND char_length(body) <= 5000`, check `updated_at >= created_at`, index `ix_comments_card_id`
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 8.5, 9.4_
 
-  - [ ] 4.6 Implement `Notification` in `app/models/notification.py`
+  - [x] 4.6 Implement `Notification` in `app/models/notification.py`
     - `user_id` FK `CASCADE`, `board_id` FK `CASCADE`, `card_id` FK `SET NULL`, `type` (1 to 50) and `message` (1 to 500) checks, `is_read` Boolean with default and server default false, index `ix_notifications_user_id_created_at`
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 8.3_
 
-  - [ ] 4.7 Implement `ActivityLog` in `app/models/activity_log.py`
+  - [x] 4.7 Implement `ActivityLog` in `app/models/activity_log.py`
     - `board_id` FK `CASCADE`, `user_id` FK `RESTRICT`, `card_id` FK `SET NULL`, `action` check (1 to 100), index `ix_activity_logs_board_id_created_at`
     - _Requirements: 7.1, 7.7, 8.3, 9.6_
 
-  - [ ] 4.8 Register all models in `app/models/__init__.py`
+  - [x] 4.8 Register all models in `app/models/__init__.py`
     - Import `User`, `Board`, `BoardMember`, `BoardColumn`, `Card`, `Comment`, `Notification`, `ActivityLog` so Alembic sees every table
     - _Requirements: 8.1, 10.2_
 
