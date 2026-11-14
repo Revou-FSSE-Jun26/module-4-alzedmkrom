@@ -1,4 +1,4 @@
-# Design Document: RevoTask Database Layer
+﻿# Design Document: RevoTask Database Layer
 
 ## Overview
 
@@ -947,7 +947,7 @@ PBT applies to this feature: the constraints, triggers, cascades, queries and co
 
 ### Tools
 
-- `pytest`, `Hypothesis` (property-based testing library; not implemented from scratch), `pytest-postgresql` or a PostgreSQL 16 service container in CI. Tests do not use SQLite, because CHECK regex, triggers, `gen_random_uuid()` and functional indexes are PostgreSQL behavior.
+- `pytest`, `Hypothesis` (property-based testing library; not implemented from scratch), a locally installed PostgreSQL 18. The `conftest.py` fixtures use `TEST_DATABASE_URL` if set, otherwise start a throwaway PostgreSQL 18 cluster (`initdb` + `pg_ctl` in a temp directory) and remove it at session end. CI may use a PostgreSQL 18 service container. Tests do not use SQLite, because CHECK regex, triggers, `gen_random_uuid()` and functional indexes are PostgreSQL behavior.
 - The test database is built by running `flask db upgrade` once per session, so every test also exercises the real migrations.
 - Each Hypothesis example runs in its own transaction and is rolled back at the end. Statements that are expected to fail run inside `begin_nested()`.
 - Strategies: `st.text()` with whitespace and non-BMP characters, `st.floats(allow_nan=True, allow_infinity=True)`, `st.uuids()`, `st.datetimes(timezones=st.timezones())`, and composite strategies for board graphs.

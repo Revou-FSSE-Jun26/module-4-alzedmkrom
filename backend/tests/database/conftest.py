@@ -1,9 +1,15 @@
-"""Shared fixtures, strategies and the field registry for database tests.
+﻿"""Shared fixtures, strategies and the field registry for database tests.
 
-Requires a PostgreSQL 16 database named by TEST_DATABASE_URL. SQLite is
+Uses PostgreSQL 18. If TEST_DATABASE_URL is set it is used as is. Otherwise a
+throwaway cluster is started from the locally installed PostgreSQL 18 binaries
+(initdb + pg_ctl in a temp directory) and removed at session end. SQLite is
 never used. The schema is built once per session with `flask db upgrade`.
 """
 import os
+import shutil
+import socket
+import subprocess
+import tempfile
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -50,11 +56,62 @@ FIELD_REGISTRY = [
 # ---------------------------------------------------------------------------
 
 
+PG_MAJOR = 18
+
+
+def _pg_bin_dir():
+    env = os.environ.get("PG_BIN_DIR")
+    if env:
+        return Path(env)
+    found = shutil.which("pg_ctl")
+    if found:
+        return Path(found).parent
+    for root in (Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "PostgreSQL",
+                 Path("/usr/lib/postgresql")):
+        cand = root / str(PG_MAJOR) / "bin"
+        if cand.is_dir():
+            return cand
+    return None
+
+
 @pytest.fixture(scope="session")
-def app():
+def database_url(tmp_path_factory):
+    """URL of the test database: TEST_DATABASE_URL, else a temp PG18 cluster."""
     url = os.environ.get(TEST_DB_ENV)
-    if not url or not url.strip():
-        pytest.skip(f"{TEST_DB_ENV} is not set; PostgreSQL 16 is required")
+    if url and url.strip():
+        yield url
+        return
+    bindir = _pg_bin_dir()
+    if bindir is None:
+        pytest.skip(f"{TEST_DB_ENV} not set and PostgreSQL {PG_MAJOR} binaries not found")
+    exe = ".exe" if os.name == "nt" else ""
+    data = tmp_path_factory.mktemp("pgdata")
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    subprocess.run(
+        [str(bindir / f"initdb{exe}"), "-D", str(data), "-U", "postgres",
+         "-A", "trust", "-E", "UTF8", "--no-sync"],
+        check=True, capture_output=True,
+    )
+    log = Path(tempfile.gettempdir()) / f"pg_test_{port}.log"
+    subprocess.run(
+        [str(bindir / f"pg_ctl{exe}"), "-D", str(data), "-w", "-l", str(log),
+         "-o", f"-p {port} -h 127.0.0.1 -c fsync=off -c listen_addresses=127.0.0.1",
+         "start"],
+        check=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )  # no pipes: the postgres children would inherit them and block run()
+    try:
+        yield f"postgresql://postgres@127.0.0.1:{port}/postgres"
+    finally:
+        subprocess.run([str(bindir / f"pg_ctl{exe}"), "-D", str(data), "-m", "immediate", "-w", "stop"],
+                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        log.unlink(missing_ok=True)
+
+
+@pytest.fixture(scope="session")
+def app(database_url):
+    url = database_url
     if not url.startswith(("postgres://", "postgresql://", "postgresql+")):
         pytest.fail(f"{TEST_DB_ENV} must be a PostgreSQL URL, never SQLite")
 
@@ -69,11 +126,10 @@ def app():
 
         with db.engine.connect() as conn:
             version = int(conn.exec_driver_sql("SHOW server_version_num").scalar())
-        if version // 10000 != 16:
-            pytest.fail(f"PostgreSQL 16 required, server_version_num={version}")
+        if version // 10000 != PG_MAJOR:
+            pytest.fail(f"PostgreSQL {PG_MAJOR} required, server_version_num={version}")
         upgrade(directory=str(BACKEND_DIR / "migrations"))  # == `flask db upgrade`
     return flask_app
-
 
 @pytest.fixture(scope="session")
 def engine(app):

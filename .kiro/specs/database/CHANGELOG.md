@@ -26,3 +26,17 @@
 
 ### Type of change
 - Specification change.
+## V3 - 2026-11-14
+### Changes
+- Test database changed from PostgreSQL 16 to PostgreSQL 18. The `conftest.py` fixtures use `TEST_DATABASE_URL` if set. Otherwise they start a throwaway PostgreSQL 18 cluster (`initdb` + `pg_ctl` in a temp directory, localhost, free port) from the locally installed binaries and remove it at session end. SQLite is still never used.
+- Design "Tools" no longer lists `pytest-postgresql`.
+- Added steering file `.kiro/steering/database-testing.md` so new sessions use this setup.
+### Reason
+- PostgreSQL 18 is already installed on the user's machine and version 16 is not required.
+### Impact
+- Requirements: none (no version stated). Requirement 11.1 still holds.
+- Design: Testing "Tools" section.
+- Tasks: 6.1 text and the closing notes. No status changes.
+### Type of change
+- Specification change.
+- Implementation change: `backend/tests/database/conftest.py` (version check 16 to 18, throwaway cluster fixture `database_url`).

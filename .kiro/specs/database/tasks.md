@@ -1,4 +1,4 @@
-# Implementation Plan: RevoTask Database Layer
+﻿# Implementation Plan: RevoTask Database Layer
 
 ## Overview
 
@@ -110,15 +110,15 @@ All paths below are relative to `/backend`. Test files live in `tests/database/`
 
 - [x] 6. Set up test infrastructure
   - [x] 6.1 Create `tests/database/conftest.py` and shared helpers
-    - Session fixture that builds the schema with `flask db upgrade` against a PostgreSQL 16 database taken from an environment variable (never SQLite)
+    - Session fixture that builds the schema with `flask db upgrade` against PostgreSQL 18 (never SQLite). Use `TEST_DATABASE_URL` if set; otherwise start a throwaway cluster from the locally installed PostgreSQL 18 binaries (`initdb` + `pg_ctl` in a temp directory, free localhost port) and remove it at session end
     - Per-example transaction fixture that rolls back, with `begin_nested()` helper for statements expected to fail
     - Hypothesis settings profile (`max_examples=100`, `deadline=None`)
     - Shared strategies: text with whitespace and non-BMP characters, floats with NaN and infinity, timezone-aware datetimes, composite board-graph strategy
     - Field registry `(table, column, min, max, nullable)` used by length tests and schema reflection
     - _Requirements: 10.2, 11.1_
 
-- [ ] 7. Implement reference queries
-  - [ ] 7.1 Implement `app/models/queries.py`
+- [x] 7. Implement reference queries
+  - [x] 7.1 Implement `app/models/queries.py`
     - `week_bounds_utc`, `card_counts_per_column`, `completed_this_week`, `member_activity`, `my_tasks`, `search_cards` (1 to 200 chars, `icontains(autoescape=True)`), `notifications_page` (limit 1 to 100, offset 0 to 1,000,000), `load_board` (three indexed queries)
     - Live cards exclude soft-deleted cards and cards under soft-deleted columns or boards
     - _Requirements: 6.3, 6.6, 7.2, 7.3, 7.4, 7.5, 7.6, 9.8_
@@ -295,7 +295,7 @@ All paths below are relative to `/backend`. Test files live in `tests/database/`
 - Tasks marked with `*` are optional and can be skipped for a faster MVP.
 - Each task references specific requirements for traceability.
 - Checkpoints ensure incremental validation.
-- Property tests validate universal correctness properties and run against a real PostgreSQL 16 database, never SQLite.
+- Property tests validate universal correctness properties and run against a real PostgreSQL 18 database, never SQLite.
 - Unit and example tests validate specific examples, schema shape and tooling behavior.
 - Alembic does not detect CHECK constraint or trigger changes, so those parts of revision `0001` are written by hand.
 

@@ -222,6 +222,25 @@
         "chatSessionId": "sess_0d586469-9d1c-4d65-a539-f22e8f57ac97",
         "timestamp": 1794657939751
       }
+    ],
+    "7.1 Implement `app/models/queries.py`": [
+      {
+        "executionId": "94c65650-3c29-4242-a745-11c7390c5b8a",
+        "chatSessionId": "sess_c03e5494-965c-4062-bd45-3cbf160e7184",
+        "timestamp": 1794658108711
+      },
+      {
+        "executionId": "94c65650-3c29-4242-a745-11c7390c5b8a",
+        "chatSessionId": "sess_c03e5494-965c-4062-bd45-3cbf160e7184",
+        "timestamp": 1794658202691
+      }
+    ],
+    "7. Implement reference queries": [
+      {
+        "executionId": "94c65650-3c29-4242-a745-11c7390c5b8a",
+        "chatSessionId": "sess_c03e5494-965c-4062-bd45-3cbf160e7184",
+        "timestamp": 1794658202816
+      }
     ]
   }
 }
