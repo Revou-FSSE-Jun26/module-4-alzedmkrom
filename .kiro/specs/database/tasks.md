@@ -43,12 +43,12 @@ All paths below are relative to `/backend`. Test files live in `tests/database/`
     - Test a source scan that finds no connection strings or credentials in committed files
     - _Requirements: 11.2, 11.4_
 
-- [ ] 3. Implement mixins and the application factory
-  - [ ] 3.1 Implement `app/models/mixins.py`
+- [x] 3. Implement mixins and the application factory
+  - [x] 3.1 Implement `app/models/mixins.py`
     - Add `UUIDPrimaryKeyMixin` (Python `uuid.uuid4` default plus `gen_random_uuid()` server default), `CreatedAtMixin`, `TimestampMixin` (`updated_at` with `server_onupdate=FetchedValue()`), `SoftDeleteMixin` (`deleted_at`, `soft_delete()`, `restore()`, `is_deleted`)
     - _Requirements: 1.5, 1.6, 3.6, 4.4, 4.5, 5.4_
 
-  - [ ] 3.2 Implement the app factory in `app/__init__.py`
+  - [x] 3.2 Implement the app factory in `app/__init__.py`
     - `create_app(verify_db=True)` normalizes `DATABASE_URL` before `db.init_app`, sets `SQLALCHEMY_ENGINE_OPTIONS`, initializes `migrate` with `compare_type=True`, `render_as_batch=False`, `transaction_per_migration=True` and `process_revision_directives=skip_empty_revision`
     - Import `app.models` so tables register, and call `verify_connection(db.engine)` inside an app context when `verify_db` is true
     - Define `skip_empty_revision` (clears `script.upgrade_ops` when there are no operations)

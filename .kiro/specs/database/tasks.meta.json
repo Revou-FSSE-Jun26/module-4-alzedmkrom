@@ -38,6 +38,37 @@
         "chatSessionId": "sess_2634de80-33c8-4e55-8d5c-e1b811d95d70",
         "timestamp": 1794655800459
       }
+    ],
+    "3.1 Implement `app/models/mixins.py`": [
+      {
+        "executionId": "da8cdb46-e39c-401f-a3d0-7d6722ce5680",
+        "chatSessionId": "sess_55b554fc-16b5-4e26-8e0f-f5e5aa098b80",
+        "timestamp": 1794655961288
+      },
+      {
+        "executionId": "da8cdb46-e39c-401f-a3d0-7d6722ce5680",
+        "chatSessionId": "sess_55b554fc-16b5-4e26-8e0f-f5e5aa098b80",
+        "timestamp": 1794656004335
+      }
+    ],
+    "3.2 Implement the app factory in `app/__init__.py`": [
+      {
+        "executionId": "da8cdb46-e39c-401f-a3d0-7d6722ce5680",
+        "chatSessionId": "sess_55b554fc-16b5-4e26-8e0f-f5e5aa098b80",
+        "timestamp": 1794656008679
+      },
+      {
+        "executionId": "da8cdb46-e39c-401f-a3d0-7d6722ce5680",
+        "chatSessionId": "sess_55b554fc-16b5-4e26-8e0f-f5e5aa098b80",
+        "timestamp": 1794656157211
+      }
+    ],
+    "3. Implement mixins and the application factory": [
+      {
+        "executionId": "da8cdb46-e39c-401f-a3d0-7d6722ce5680",
+        "chatSessionId": "sess_55b554fc-16b5-4e26-8e0f-f5e5aa098b80",
+        "timestamp": 1794656157338
+      }
     ]
   }
 }
