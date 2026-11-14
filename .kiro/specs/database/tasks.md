@@ -95,12 +95,12 @@ All paths below are relative to `/backend`. Test files live in `tests/database/`
     - Import `User`, `Board`, `BoardMember`, `BoardColumn`, `Card`, `Comment`, `Notification`, `ActivityLog` so Alembic sees every table
     - _Requirements: 8.1, 10.2_
 
-- [ ] 5. Create migrations including triggers
-  - [ ] 5.1 Initialize Flask-Migrate
+- [x] 5. Create migrations including triggers
+  - [x] 5.1 Initialize Flask-Migrate
     - Run `flask db init` to create `migrations/`; configure `migrations/env.py` for `compare_type`, `transaction_per_migration` and an optional `include_object` hook (kept as a fallback only if autogenerate reports a spurious diff for `uq_users_email_lower`)
     - _Requirements: 10.1, 10.5, 10.6_
 
-  - [ ] 5.2 Write the initial revision `0001_initial_schema`
+  - [x] 5.2 Write the initial revision `0001_initial_schema`
     - Autogenerate, then review and hand-edit: all CHECK constraints, the `lower(email)` unique index, and `server_default=gen_random_uuid()` defaults
     - Create the `set_updated_at()` PL/pgSQL function (pins `created_at`, sets `updated_at := GREATEST(now(), OLD.updated_at)`) and `BEFORE UPDATE` triggers on `users`, `boards`, `columns`, `cards`, `comments`
     - Add the `_create_index` helper that wraps failures in `RuntimeError("Failed to create index <name>")`
