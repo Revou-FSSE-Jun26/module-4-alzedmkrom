@@ -113,13 +113,13 @@ Structure decisions that keep the tasks independent of each other:
     - Add `OpenAPIError` and `document(...)` that attaches metadata to the view function as `fn.__openapi__` and changes no behavior (`build_openapi` and `register_docs` are added in tasks 14.1 and 14.2)
     - _Requirements: 24.17, 24.18_
 
-- [ ] 3. Extend `create_app` and create the blueprint registry
-  - [~] 3.1 Extend `app/__init__.py` and create the blueprint packages
+- [x] 3. Extend `create_app` and create the blueprint registry
+  - [x] 3.1 Extend `app/__init__.py` and create the blueprint packages
     - In `create_app(verify_db=True)`: load `backend/.env` with `load_dotenv(override=False)`, normalize `DATABASE_URL` first, then `load_settings`; set `JWT_SECRET_KEY`, `JWT_ACCESS_TOKEN_EXPIRES`, `MAX_CONTENT_LENGTH = 1_048_576` and `SQLALCHEMY_ENGINE_OPTIONS` merged with `hide_parameters=True`; init `jwt` and call `register_jwt_callbacks`; configure `CORS` with `compile_origins`, methods GET, POST, PATCH, DELETE, OPTIONS, headers `Authorization` and `Content-Type`, `supports_credentials=False`, `always_send=False`; call `register_error_handlers`; call `register_blueprints`; keep the seed command and the `verify_db` behavior unchanged
     - Create `app/blueprints/__init__.py` with `register_blueprints` importing the nine `routes` modules, and for each of `auth`, `users`, `boards`, `columns`, `cards`, `comments`, `notifications`, `analytics`, `health` an empty `__init__.py` and a stub `routes.py` containing only `bp = Blueprint("<name>", __name__)`
     - _Requirements: 17.4, 18.4, 18.5, 18.6, 18.8, 19.1, 19.2, 19.3, 19.4, 19.5, 20.1, 20.3, 20.4, 20.9, 21.3_
 
-  - [~] 3.2 Create the API test infrastructure
+  - [x] 3.2 Create the API test infrastructure
     - Create `tests/api/__init__.py`, `tests/api/properties/__init__.py` and `tests/api/conftest.py` that imports `database_url`, `app` and `engine` from `tests.database.conftest` and adds `clean_db` (autouse `TRUNCATE ... RESTART IDENTITY CASCADE` of the eight tables), `client`, `make_user`, `make_board`, `make_column`, `make_card`, `make_comment`, `make_notification` (insert with a precomputed password hash and commit), `auth_headers(user)`, `snapshot()` and `count_queries()` (records statements through `before_cursor_execute`)
     - _Requirements: 23.1, 23.3, 23.7_
 

@@ -172,6 +172,16 @@
         "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
         "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
         "timestamp": 1794844106554
+      },
+      {
+        "executionId": "d6ce2948-c76f-4d57-a450-6cd6d9b81d6b",
+        "chatSessionId": "sess_6df6246c-5c16-476d-97bd-817fa36fbcbe",
+        "timestamp": 1794844602823
+      },
+      {
+        "executionId": "d6ce2948-c76f-4d57-a450-6cd6d9b81d6b",
+        "chatSessionId": "sess_6df6246c-5c16-476d-97bd-817fa36fbcbe",
+        "timestamp": 1794844667106
       }
     ],
     "3.2 Create the API test infrastructure": [
@@ -179,6 +189,16 @@
         "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
         "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
         "timestamp": 1794844106624
+      },
+      {
+        "executionId": "d6ce2948-c76f-4d57-a450-6cd6d9b81d6b",
+        "chatSessionId": "sess_6df6246c-5c16-476d-97bd-817fa36fbcbe",
+        "timestamp": 1794844667561
+      },
+      {
+        "executionId": "d6ce2948-c76f-4d57-a450-6cd6d9b81d6b",
+        "chatSessionId": "sess_6df6246c-5c16-476d-97bd-817fa36fbcbe",
+        "timestamp": 1794844737032
       }
     ],
     "4.1 Implement `app/blueprints/auth/schema.py` and `service.py`": [
@@ -380,6 +400,13 @@
         "executionId": "f27f6d5f-f4c3-4145-b2d1-d2015af124f3",
         "chatSessionId": "sess_eaa3f18b-a8f9-47b9-8c05-d4a91cf2d2f5",
         "timestamp": 1794844457086
+      }
+    ],
+    "3. Extend `create_app` and create the blueprint registry": [
+      {
+        "executionId": "d6ce2948-c76f-4d57-a450-6cd6d9b81d6b",
+        "chatSessionId": "sess_6df6246c-5c16-476d-97bd-817fa36fbcbe",
+        "timestamp": 1794844737137
       }
     ]
   }
