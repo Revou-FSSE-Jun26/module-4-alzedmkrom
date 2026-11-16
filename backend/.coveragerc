@@ -1,0 +1,7 @@
+[run]
+source = app/blueprints
+
+[report]
+fail_under = 80.0
+precision = 1
+show_missing = true

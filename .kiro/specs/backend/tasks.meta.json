@@ -1,0 +1,319 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Update dependency, environment and test configuration files": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844105492
+      },
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844112783
+      },
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844159272
+      }
+    ],
+    "1.2 Implement `app/config.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844105615
+      },
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844112907
+      },
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844159706
+      }
+    ],
+    "2.1 Create `app/common/__init__.py` and `app/common/constants.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844105691
+      }
+    ],
+    "2.2 Implement `app/common/envelope.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844105774
+      }
+    ],
+    "2.4 Implement `app/common/errors.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844105853
+      }
+    ],
+    "2.5 Implement `app/common/validation.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844105931
+      }
+    ],
+    "2.7 Implement `app/common/schemas.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106002
+      }
+    ],
+    "2.9 Add `jwt = JWTManager()` to `app/extensions.py` and implement `app/common/auth.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106085
+      }
+    ],
+    "2.11 Implement `app/common/db.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106170
+      }
+    ],
+    "2.12 Implement `app/common/ordering.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106248
+      }
+    ],
+    "2.15 Implement `app/common/events.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106325
+      }
+    ],
+    "2.17 Implement `app/common/access.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106405
+      }
+    ],
+    "2.18 Implement the `document` decorator in `app/common/openapi.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106482
+      }
+    ],
+    "3.1 Extend `app/__init__.py` and create the blueprint packages": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106554
+      }
+    ],
+    "3.2 Create the API test infrastructure": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106624
+      }
+    ],
+    "4.1 Implement `app/blueprints/auth/schema.py` and `service.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106694
+      }
+    ],
+    "4.2 Implement `app/blueprints/auth/routes.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106774
+      }
+    ],
+    "5.1 Implement `app/blueprints/users/schema.py` and `service.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106851
+      }
+    ],
+    "5.2 Implement `app/blueprints/users/routes.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106919
+      }
+    ],
+    "6.1 Implement board schemas and service in `app/blueprints/boards/schema.py` and `service.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844106988
+      }
+    ],
+    "6.2 Implement board routes in `app/blueprints/boards/routes.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844107067
+      }
+    ],
+    "6.3 Implement member schemas and service in `app/blueprints/boards/schema.py` and `service.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844107135
+      }
+    ],
+    "6.4 Implement member routes in `app/blueprints/boards/routes.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844107210
+      }
+    ],
+    "7.1 Implement `app/blueprints/columns/schema.py` and `service.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844107300
+      }
+    ],
+    "7.2 Implement `app/blueprints/columns/routes.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844107431
+      }
+    ],
+    "8.1 Implement card create, update and delete in `app/blueprints/cards/schema.py` and `service.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844107511
+      }
+    ],
+    "8.2 Implement card move, My Tasks and search in `app/blueprints/cards/schema.py` and `service.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844107601
+      }
+    ],
+    "8.3 Implement `app/blueprints/cards/routes.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844107691
+      }
+    ],
+    "9. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844107770
+      }
+    ],
+    "10.1 Implement `app/blueprints/comments/schema.py` and `service.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844107849
+      }
+    ],
+    "10.2 Implement `app/blueprints/comments/routes.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844107928
+      }
+    ],
+    "11.1 Implement `app/blueprints/notifications/schema.py` and `service.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844108004
+      }
+    ],
+    "11.2 Implement `app/blueprints/notifications/routes.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844108079
+      }
+    ],
+    "12.1 Implement `app/blueprints/analytics/schema.py` and `service.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844108155
+      }
+    ],
+    "12.2 Implement `app/blueprints/analytics/routes.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844108226
+      }
+    ],
+    "13.1 Implement `app/blueprints/health/schema.py`, `service.py` and `routes.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844108301
+      }
+    ],
+    "14.1 Implement `build_openapi` in `app/common/openapi.py`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844108374
+      }
+    ],
+    "14.2 Implement `register_docs` and wire it into `create_app`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844108450
+      }
+    ],
+    "15.1 Create `railway.json`": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844108515
+      }
+    ],
+    "16. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844108588
+      }
+    ],
+    "18. Final checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844108663
+      }
+    ],
+    "1. Set up dependencies, configuration and test scaffolding": [
+      {
+        "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
+        "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
+        "timestamp": 1794844159789
+      }
+    ]
+  }
+}
