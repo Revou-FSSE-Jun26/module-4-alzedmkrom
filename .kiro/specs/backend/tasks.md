@@ -330,13 +330,13 @@ Structure decisions that keep the tasks independent of each other:
     - Defaults, paging and `total`, empty page past the end, invalid `page` and `per_page` (sign, decimal point, empty, offset above 1,000,000), `card_id` masked for a soft-deleted card, mark-read, mark-read of another user's notification gives 404
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 23.1_
 
-- [ ] 12. Implement the analytics blueprint
-  - [ ] 12.1 Implement `app/blueprints/analytics/schema.py` and `service.py`
+- [x] 12. Implement the analytics blueprint
+  - [x] 12.1 Implement `app/blueprints/analytics/schema.py` and `service.py`
     - Schema: `AnalyticsOutSchema` (`cards_per_column`, `completed_this_week`, `member_activity`)
     - Service: `get_analytics` composing `queries.card_counts_per_column`, `queries.completed_this_week` and `queries.member_activity`
     - _Requirements: 15.1, 15.2, 15.3, 15.5, 15.6_
 
-  - [ ] 12.2 Implement `app/blueprints/analytics/routes.py`
+  - [x] 12.2 Implement `app/blueprints/analytics/routes.py`
     - Route 29: `GET /api/boards/{id}/analytics` (`get_analytics`, `get_board_for_user` then `require_admin`, 200 `AnalyticsOutSchema`)
     - _Requirements: 15.1, 15.4, 17.2, 17.3_
 
