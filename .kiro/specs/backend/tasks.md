@@ -206,13 +206,13 @@ Structure decisions that keep the tasks independent of each other:
     - List, add (201, 404 unknown email, 409 existing, 400 bad role), change role, remove, self-removal by a `member`, last-admin 409, 404 for a user without membership, 403 for non-admin changes, unassignment of cards on removal
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10, 6.11, 6.12, 23.1_
 
-- [ ] 7. Implement the columns blueprint
-  - [ ] 7.1 Implement `app/blueprints/columns/schema.py` and `service.py`
+- [x] 7. Implement the columns blueprint
+  - [x] 7.1 Implement `app/blueprints/columns/schema.py` and `service.py`
     - Schemas: `ColumnCreateSchema`, `ColumnUpdateSchema`, `ColumnReorderSchema` (`StrictUUID` `column_id`, `OrderValue` `order`), `ColumnReorderOutSchema`
     - Service: `create_column` (lock board, `next_order`, `column_created` activity), `rename_column` (only `title` and `updated_at`), `delete_column` (`soft_delete()` on the column only), `reorder_columns` (lock board, find `column_id` among live columns of the board or 404, `plan_move`, write only changed rows, return sorted columns and `rebalanced`)
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 8.1, 8.2, 8.3, 8.4, 14.5_
 
-  - [ ] 7.2 Implement `app/blueprints/columns/routes.py`
+  - [x] 7.2 Implement `app/blueprints/columns/routes.py`
     - Route 14: `POST /api/boards/{id}/columns` (`create_column`, `get_board_for_user`, 201 `ColumnOutSchema`)
     - Route 15: `PATCH /api/columns/{id}` (`rename_column`, `get_column_for_user`, 200 `ColumnOutSchema`)
     - Route 16: `DELETE /api/columns/{id}` (`delete_column`, `get_column_for_user`, 200 `IdOutSchema`)
