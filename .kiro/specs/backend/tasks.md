@@ -123,13 +123,13 @@ Structure decisions that keep the tasks independent of each other:
     - Create `tests/api/__init__.py`, `tests/api/properties/__init__.py` and `tests/api/conftest.py` that imports `database_url`, `app` and `engine` from `tests.database.conftest` and adds `clean_db` (autouse `TRUNCATE ... RESTART IDENTITY CASCADE` of the eight tables), `client`, `make_user`, `make_board`, `make_column`, `make_card`, `make_comment`, `make_notification` (insert with a precomputed password hash and commit), `auth_headers(user)`, `snapshot()` and `count_queries()` (records statements through `before_cursor_execute`)
     - _Requirements: 23.1, 23.3, 23.7_
 
-- [ ] 4. Implement the auth blueprint
-  - [~] 4.1 Implement `app/blueprints/auth/schema.py` and `service.py`
+- [x] 4. Implement the auth blueprint
+  - [x] 4.1 Implement `app/blueprints/auth/schema.py` and `service.py`
     - Schemas: `RegisterSchema` (`StrictSchema`; `name` 1 to 255, `email`, `password` 8 to 128 untrimmed), `LoginSchema` (`LenientSchema`), `RegisterOutSchema`, `UserBriefOutSchema`, `LoginOutSchema` (`access_token`, `token_type`, `expires_in`, `user`)
     - Service: `register_user` (pre-check, then `commit_or_conflict` so a concurrent loser gets 409), `login` (trim and lower-case the email, `verify_password` with the dummy hash on a miss, one `Unauthorized("Invalid email or password")` for both failure cases, returns user, token and expires_in)
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 2.1, 2.2, 2.3, 2.4, 2.5, 21.1, 21.2, 21.5_
 
-  - [~] 4.2 Implement `app/blueprints/auth/routes.py`
+  - [x] 4.2 Implement `app/blueprints/auth/routes.py`
     - Route 1: `POST /api/auth/register` (`register`, public, 201 `RegisterOutSchema`, `conflict=True`)
     - Route 2: `POST /api/auth/login` (`login`, public, 200 `LoginOutSchema`)
     - _Requirements: 1.1, 1.3, 1.6, 2.1, 2.4, 2.5, 17.5, 21.2, 24.12, 24.13, 24.19_
