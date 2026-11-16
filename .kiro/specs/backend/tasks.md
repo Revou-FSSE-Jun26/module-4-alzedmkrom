@@ -160,13 +160,13 @@ Structure decisions that keep the tasks independent of each other:
     - Profile read and update, unknown field (`password`, `id`) gives 400 even with a valid `name`, `{}` gives 400, 409 on another user's email, own email accepted, `null` and empty values give 400
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 23.1_
 
-- [ ] 6. Implement the boards blueprint, including members
-  - [ ] 6.1 Implement board schemas and service in `app/blueprints/boards/schema.py` and `service.py`
+- [x] 6. Implement the boards blueprint, including members
+  - [x] 6.1 Implement board schemas and service in `app/blueprints/boards/schema.py` and `service.py`
     - Schemas: `BoardCreateSchema`, `BoardUpdateSchema`, `BoardOutSchema`, `ColumnWithCardsOutSchema`, `BoardDetailOutSchema`
     - Service: `create_board` (board plus admin membership in one transaction), `list_boards` (order `updated_at` desc, `id` asc), `get_board_detail` (calls `queries.load_board`, groups cards in a dict, builds plain dicts, no lazy relationships), `rename_board`, `delete_board` (`soft_delete()` on the board only)
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.4, 5.5, 22.1, 22.2_
 
-  - [ ] 6.2 Implement board routes in `app/blueprints/boards/routes.py`
+  - [x] 6.2 Implement board routes in `app/blueprints/boards/routes.py`
     - Route 5: `POST /api/boards` (`create_board`, 201 `BoardOutSchema`)
     - Route 6: `GET /api/boards` (`list_boards`, 200 `BoardOutSchema[]`)
     - Route 7: `GET /api/boards/{id}` (`get_board`, `get_board_for_user`, 200 `BoardDetailOutSchema`)
@@ -174,12 +174,12 @@ Structure decisions that keep the tasks independent of each other:
     - Route 9: `DELETE /api/boards/{id}` (`delete_board`, `require_admin`, 200 `IdOutSchema`)
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 17.2, 17.3, 22.1, 22.2_
 
-  - [ ] 6.3 Implement member schemas and service in `app/blueprints/boards/schema.py` and `service.py`
+  - [x] 6.3 Implement member schemas and service in `app/blueprints/boards/schema.py` and `service.py`
     - Schemas: `MemberAddSchema` (`email`, `role` default `member`), `MemberRoleSchema`, `MemberOutSchema`, `MemberRemovedOutSchema`
     - Service: `list_members` (order `created_at` asc), `add_member` (lock board, lookup by `lower(email)`, 404 for unknown user, 409 for existing membership, `member_added` activity and notification), `change_member_role` and `remove_member` (lock board, target membership lookup after the caller's checks, 409 before any write when the board would lose its last admin, `member_role_changed` and `member_removed` activities, bulk `UPDATE cards SET assignee_id = NULL` for live cards of the board assigned to the removed user)
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10, 6.11, 6.12, 14.4, 14.5, 14.7_
 
-  - [ ] 6.4 Implement member routes in `app/blueprints/boards/routes.py`
+  - [x] 6.4 Implement member routes in `app/blueprints/boards/routes.py`
     - Route 10: `GET /api/boards/{id}/members` (`list_members`, `get_board_for_user`, 200 `MemberOutSchema[]`)
     - Route 11: `POST /api/boards/{id}/members` (`add_member`, `require_admin`, 201 `MemberOutSchema`, `conflict=True`)
     - Route 12: `PATCH /api/boards/{id}/members/{user_id}` (`change_member_role`, `require_admin`, then target lookup, `conflict=True`)
