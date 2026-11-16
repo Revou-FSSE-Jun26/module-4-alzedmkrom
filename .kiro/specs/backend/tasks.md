@@ -224,18 +224,18 @@ Structure decisions that keep the tasks independent of each other:
     - Create (order `max + 1.0`), rename keeps `order`, delete leaves cards untouched, reorder without and with rebalance, 400 for bad `column_id` or `order`, 404 for a column of another board or a soft-deleted column
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 8.1, 8.2, 8.3, 8.4, 23.1_
 
-- [ ] 8. Implement the cards blueprint
-  - [ ] 8.1 Implement card create, update and delete in `app/blueprints/cards/schema.py` and `service.py`
+- [x] 8. Implement the cards blueprint
+  - [x] 8.1 Implement card create, update and delete in `app/blueprints/cards/schema.py` and `service.py`
     - Schemas: `CardCreateSchema` and `CardUpdateSchema` (`StrictSchema`; update has the `at_least_one` rule)
     - Service: `create_card` (assignee must be a board member, lock board, `next_order`, `created_by` from the token, `card_created` activity, `card_assigned` notification unless the assignee is the caller), `update_card` (only supplied keys, `changed` rule, `completed_at` set once, cleared on `false`, `card_completed` logged once, `card_updated` when changed, `card_assigned` when the assignee changes to another user), `delete_card` (`soft_delete()`, `card_deleted` activity)
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.10, 14.1, 14.4, 14.5, 14.7_
 
-  - [ ] 8.2 Implement card move, My Tasks and search in `app/blueprints/cards/schema.py` and `service.py`
+  - [x] 8.2 Implement card move, My Tasks and search in `app/blueprints/cards/schema.py` and `service.py`
     - Schemas: `CardPositionSchema` (validated before the target column lookup), `SiblingOutSchema`, `CardMoveOutSchema`, `CardListQuerySchema` (`exactly_one` of `assignee=me` and `search`), `TaskGroupOutSchema`
     - Service: `move_card` (target column among live columns of the same board or 404, lock board, `plan_move` over the live siblings without the moved card, `card_moved` activity and notification only when the column changes, `siblings` only when rebalanced), `list_my_tasks` (calls `queries.my_tasks`, groups by `board_id` in first-seen order), `search` (calls `queries.search_cards` with the caller's id)
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 11.1, 11.2, 11.3, 11.4, 11.5, 14.2, 14.4, 14.5_
 
-  - [ ] 8.3 Implement `app/blueprints/cards/routes.py`
+  - [x] 8.3 Implement `app/blueprints/cards/routes.py`
     - Route 18: `POST /api/columns/{id}/cards` (`create_card`, `get_column_for_user`, 201 `CardOutSchema`)
     - Route 19: `GET /api/cards` (`list_cards`, `load_query` with `CardListQuerySchema`, branches to `list_my_tasks` or `search`, one operation documented with a `oneOf` data field)
     - Route 20: `PATCH /api/cards/{id}` (`update_card`, `get_card_for_user`, 200 `CardOutSchema`)
