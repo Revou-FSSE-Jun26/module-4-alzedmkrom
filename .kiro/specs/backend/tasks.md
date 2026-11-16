@@ -33,12 +33,12 @@ Structure decisions that keep the tasks independent of each other:
     - **Property 8: Settings parsing**
     - **Validates: Requirements 2.2, 19.1, 20.1, 20.3, 24.1**
 
-- [ ] 2. Implement shared modules under `app/common`
-  - [~] 2.1 Create `app/common/__init__.py` and `app/common/constants.py`
+- [x] 2. Implement shared modules under `app/common`
+  - [x] 2.1 Create `app/common/__init__.py` and `app/common/constants.py`
     - Add `Role`, `ActivityAction`, `NotificationType` enums, `NOTIFICATION_MESSAGE_MAX = 500`, `PAGE_SIZE_DEFAULT`, `PAGE_SIZE_MAX`, `OFFSET_MAX`, `MIN_GAP = 1e-6`
     - _Requirements: 6.2, 8.2, 10.4, 13.1, 13.3, 14.1, 14.5_
 
-  - [~] 2.2 Implement `app/common/envelope.py`
+  - [x] 2.2 Implement `app/common/envelope.py`
     - Add `ok(payload, status=200)`, `error_response(status, message)` and `format_field_errors` (one `<field>: <message>` entry per leaf error, fields sorted, nested keys joined with `.`, `_schema` rendered as the bare message, joined with `; `)
     - _Requirements: 18.1, 18.7_
 
@@ -47,11 +47,11 @@ Structure decisions that keep the tasks independent of each other:
     - **Property 6: Field error messages follow one format**
     - **Validates: Requirements 18.7**
 
-  - [~] 2.4 Implement `app/common/errors.py`
+  - [x] 2.4 Implement `app/common/errors.py`
     - Add `ApiError`, `Unauthorized`, `Forbidden`, `NotFound`, `Conflict`, `ValidationFailed` and `register_error_handlers` (handlers for `ApiError`, `IntegrityError` (23505 gives 409, other class-23 codes give 400, no SQL text), `HTTPException` (fixed texts for 404, 405, 413) and `Exception` (rollback, `app.logger.exception`, constant 500 message))
     - _Requirements: 18.1, 18.4, 18.5, 18.6, 18.8, 21.3_
 
-  - [~] 2.5 Implement `app/common/validation.py`
+  - [x] 2.5 Implement `app/common/validation.py`
     - Add `Text`, `Email`, `StrictUUID`, `OrderValue`, `StrictBoolean`, `DigitsInt`, `UTCDateTime`, `StrictSchema` (`unknown=RAISE`), `LenientSchema` (`unknown=EXCLUDE`), `parse_uuid`, `load_body` (JSON object only) and `load_query` (a repeated key is an error for that key)
     - _Requirements: 1.2, 1.4, 1.6, 8.3, 9.7, 10.5, 13.3, 17.2, 17.6, 18.2, 18.3, 18.7_
 
@@ -60,7 +60,7 @@ Structure decisions that keep the tasks independent of each other:
     - **Property 3: Strict scalar fields accept exactly their type**
     - **Validates: Requirements 8.3, 9.7, 10.5, 13.3**
 
-  - [~] 2.7 Implement `app/common/schemas.py`
+  - [x] 2.7 Implement `app/common/schemas.py`
     - Add the shared response schemas `IdOutSchema`, `AuthorOutSchema`, `ColumnOutSchema` and `CardOutSchema` with `required=True` on always-present fields and no password field
     - _Requirements: 5.2, 7.1, 9.1, 18.2, 21.2_
 
@@ -69,7 +69,7 @@ Structure decisions that keep the tasks independent of each other:
     - **Property 7: Identifiers and timestamps serialize in one form**
     - **Validates: Requirements 18.2**
 
-  - [~] 2.9 Add `jwt = JWTManager()` to `app/extensions.py` and implement `app/common/auth.py`
+  - [x] 2.9 Add `jwt = JWTManager()` to `app/extensions.py` and implement `app/common/auth.py`
     - Add `hash_password`, `verify_password` (checks a dummy hash when the stored hash is `None`), `protected` (`@jwt_required()` plus `__protected__` marker), `current_user` and `register_jwt_callbacks` (`user_lookup_loader` plus the unauthorized, invalid-token, expired-token, lookup-error and revoked-token loaders, all returning the 401 envelope `Authentication required`)
     - _Requirements: 2.1, 17.1, 21.1, 21.5_
 
@@ -78,11 +78,11 @@ Structure decisions that keep the tasks independent of each other:
     - **Property 10: Password hashes never reveal the password**
     - **Validates: Requirements 21.1**
 
-  - [~] 2.11 Implement `app/common/db.py`
+  - [x] 2.11 Implement `app/common/db.py`
     - Add `lock_board` (`SELECT ... FOR UPDATE` on the board row) and `commit_or_conflict` (commit; on `IntegrityError` roll back and raise `Conflict` for 23505, `ValidationFailed` for other class-23 codes)
     - _Requirements: 4.5, 6.9, 14.6, 18.5_
 
-  - [~] 2.12 Implement `app/common/ordering.py`
+  - [x] 2.12 Implement `app/common/ordering.py`
     - Add `next_order`, `MovePlan` and `plan_move` (the checks and renumbering described in the design: any sibling within `MIN_GAP` triggers a rebalance, the moved row goes after siblings with an equal order, rows numbered `1.0 ... N`)
     - _Requirements: 7.1, 8.1, 8.2, 9.1, 10.2, 10.4_
 
@@ -96,7 +96,7 @@ Structure decisions that keep the tasks independent of each other:
     - **Property 17: A rebalance numbers the rows 1 to N and keeps their order**
     - **Validates: Requirements 8.2, 10.4**
 
-  - [~] 2.15 Implement `app/common/events.py`
+  - [x] 2.15 Implement `app/common/events.py`
     - Add `log_activity`, `create_notification` (both only `db.session.add`, no flush or commit), `fit_message` (truncate the title and end it with `…` so the result has at most 500 characters) and `message_card_assigned`, `message_card_moved`, `message_comment_added`, `message_member_added`
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7_
 
@@ -105,11 +105,11 @@ Structure decisions that keep the tasks independent of each other:
     - **Property 19: Notification messages always fit**
     - **Validates: Requirements 14.7**
 
-  - [~] 2.17 Implement `app/common/access.py`
+  - [x] 2.17 Implement `app/common/access.py`
     - Add `BoardAccess`, `ColumnAccess`, `CardAccess`, `CommentAccess`, `get_board_for_user` (selects only `Board.id` and `role`), `get_column_for_user`, `get_card_for_user`, `get_comment_for_user` (one joined query each: no row gives 404, role `NULL` gives 403, live-record filters on the record and its ancestors) and `require_admin`, `require_admin_or_self`, `require_card_deleter`, `require_comment_owner`
     - _Requirements: 5.6, 6.11, 9.9, 12.6, 17.2, 17.3, 17.4_
 
-  - [~] 2.18 Implement the `document` decorator in `app/common/openapi.py`
+  - [x] 2.18 Implement the `document` decorator in `app/common/openapi.py`
     - Add `OpenAPIError` and `document(...)` that attaches metadata to the view function as `fn.__openapi__` and changes no behavior (`build_openapi` and `register_docs` are added in tasks 14.1 and 14.2)
     - _Requirements: 24.17, 24.18_
 

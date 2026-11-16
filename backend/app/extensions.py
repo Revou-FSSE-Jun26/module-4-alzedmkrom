@@ -1,3 +1,4 @@
+from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
@@ -12,3 +13,4 @@ NAMING_CONVENTION = {
 
 db = SQLAlchemy(metadata=MetaData(naming_convention=NAMING_CONVENTION))
 migrate = Migrate()
+jwt = JWTManager()
