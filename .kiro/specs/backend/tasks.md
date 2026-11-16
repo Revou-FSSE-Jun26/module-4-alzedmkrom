@@ -283,16 +283,16 @@ Structure decisions that keep the tasks independent of each other:
     - `assignee=me` grouped by board (two boards with the same name stay separate), `search=` hit and miss, neither parameter, both parameters, invalid `assignee`, empty and 201-character `search`
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 23.1_
 
-- [ ] 9. Checkpoint - Ensure all tests pass
+- [x] 9. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Implement the comments blueprint
-  - [ ] 10.1 Implement `app/blueprints/comments/schema.py` and `service.py`
+- [x] 10. Implement the comments blueprint
+  - [x] 10.1 Implement `app/blueprints/comments/schema.py` and `service.py`
     - Schemas: `CommentSchema` (`content` 1 to 5,000 with a non-whitespace character), `CommentOutSchema` (`content` from `Comment.body`, nested `author`)
     - Service: `create_comment` (`comment_added` activity, one notification per distinct non-null creator or assignee who is not the author and is still a board member, via one `IN` query on `board_members`), `list_comments` (order `created_at` asc), `update_comment`, `delete_comment` (`soft_delete()`)
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 14.3, 14.4, 14.5, 14.7_
 
-  - [ ] 10.2 Implement `app/blueprints/comments/routes.py`
+  - [x] 10.2 Implement `app/blueprints/comments/routes.py`
     - Route 23: `POST /api/cards/{id}/comments` (`create_comment`, `get_card_for_user`, 201 `CommentOutSchema`)
     - Route 24: `GET /api/cards/{id}/comments` (`list_comments`, `get_card_for_user`, 200 `CommentOutSchema[]`)
     - Route 25: `PATCH /api/comments/{id}` (`update_comment`, `get_comment_for_user` then `require_comment_owner`, 200 `CommentOutSchema`)
