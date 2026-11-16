@@ -304,13 +304,13 @@ Structure decisions that keep the tasks independent of each other:
     - Status 201 on a valid comment, status 400 naming `content` when `content` is missing (also empty, whitespace only, 5,001 characters, not a string), status 401 when the request has no Access_Token, status 403 when a non-owner updates or deletes (including a board admin), list order and omission of deleted comments, notifications to creator and assignee
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 14.3, 23.1, 23.2_
 
-- [ ] 11. Implement the notifications blueprint
-  - [ ] 11.1 Implement `app/blueprints/notifications/schema.py` and `service.py`
+- [x] 11. Implement the notifications blueprint
+  - [x] 11.1 Implement `app/blueprints/notifications/schema.py` and `service.py`
     - Schemas: `NotificationListQuerySchema` (`DigitsInt` `page` and `per_page`, `offset_limit` rule naming `page`), `NotificationOutSchema`, `NotificationPageOutSchema`
     - Service: `list_notifications` (calls `queries.notifications_page` and a count; nulls `card_id` of cards that are not live records with one extra `select(Card.id)` query), `mark_read` (`parse_uuid`, 404 when missing or owned by another user, sets `is_read` only when false)
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7_
 
-  - [ ] 11.2 Implement `app/blueprints/notifications/routes.py`
+  - [x] 11.2 Implement `app/blueprints/notifications/routes.py`
     - Route 27: `GET /api/notifications` (`list_notifications`, `load_query`, 200 `NotificationPageOutSchema`)
     - Route 28: `PATCH /api/notifications/{id}/read` (`mark_read`, own-record lookup inside the service, 200 `NotificationOutSchema`)
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 17.1, 17.2_
