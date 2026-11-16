@@ -144,13 +144,13 @@ Structure decisions that keep the tasks independent of each other:
     - Success and failure for register and login (400, 401, 409), no password field in responses, `expires_in` from `JWT_ACCESS_TOKEN_EXPIRES`, 8 concurrent registrations give one 201, the rest 409 and one row
     - _Requirements: 1.1, 1.3, 1.4, 1.5, 1.6, 1.7, 2.1, 2.2, 2.4, 2.5, 23.1_
 
-- [ ] 5. Implement the users blueprint
-  - [~] 5.1 Implement `app/blueprints/users/schema.py` and `service.py`
+- [x] 5. Implement the users blueprint
+  - [x] 5.1 Implement `app/blueprints/users/schema.py` and `service.py`
     - Schemas: `ProfileUpdateSchema` (`StrictSchema`, `at_least_one` rule giving 400 for `{}`), `ProfileOutSchema`
     - Service: `get_profile`, `update_profile` (only supplied fields, email trimmed and lower-cased, own email is not a conflict, `commit_or_conflict`)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
-  - [~] 5.2 Implement `app/blueprints/users/routes.py`
+  - [x] 5.2 Implement `app/blueprints/users/routes.py`
     - Route 3: `GET /api/users/me` (`get_me`, 200 `ProfileOutSchema`)
     - Route 4: `PATCH /api/users/me` (`update_me`, 200 `ProfileOutSchema`, `conflict=True`)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 17.1_
@@ -161,12 +161,12 @@ Structure decisions that keep the tasks independent of each other:
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 23.1_
 
 - [ ] 6. Implement the boards blueprint, including members
-  - [~] 6.1 Implement board schemas and service in `app/blueprints/boards/schema.py` and `service.py`
+  - [ ] 6.1 Implement board schemas and service in `app/blueprints/boards/schema.py` and `service.py`
     - Schemas: `BoardCreateSchema`, `BoardUpdateSchema`, `BoardOutSchema`, `ColumnWithCardsOutSchema`, `BoardDetailOutSchema`
     - Service: `create_board` (board plus admin membership in one transaction), `list_boards` (order `updated_at` desc, `id` asc), `get_board_detail` (calls `queries.load_board`, groups cards in a dict, builds plain dicts, no lazy relationships), `rename_board`, `delete_board` (`soft_delete()` on the board only)
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.4, 5.5, 22.1, 22.2_
 
-  - [~] 6.2 Implement board routes in `app/blueprints/boards/routes.py`
+  - [ ] 6.2 Implement board routes in `app/blueprints/boards/routes.py`
     - Route 5: `POST /api/boards` (`create_board`, 201 `BoardOutSchema`)
     - Route 6: `GET /api/boards` (`list_boards`, 200 `BoardOutSchema[]`)
     - Route 7: `GET /api/boards/{id}` (`get_board`, `get_board_for_user`, 200 `BoardDetailOutSchema`)
@@ -174,12 +174,12 @@ Structure decisions that keep the tasks independent of each other:
     - Route 9: `DELETE /api/boards/{id}` (`delete_board`, `require_admin`, 200 `IdOutSchema`)
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 17.2, 17.3, 22.1, 22.2_
 
-  - [~] 6.3 Implement member schemas and service in `app/blueprints/boards/schema.py` and `service.py`
+  - [ ] 6.3 Implement member schemas and service in `app/blueprints/boards/schema.py` and `service.py`
     - Schemas: `MemberAddSchema` (`email`, `role` default `member`), `MemberRoleSchema`, `MemberOutSchema`, `MemberRemovedOutSchema`
     - Service: `list_members` (order `created_at` asc), `add_member` (lock board, lookup by `lower(email)`, 404 for unknown user, 409 for existing membership, `member_added` activity and notification), `change_member_role` and `remove_member` (lock board, target membership lookup after the caller's checks, 409 before any write when the board would lose its last admin, `member_role_changed` and `member_removed` activities, bulk `UPDATE cards SET assignee_id = NULL` for live cards of the board assigned to the removed user)
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10, 6.11, 6.12, 14.4, 14.5, 14.7_
 
-  - [~] 6.4 Implement member routes in `app/blueprints/boards/routes.py`
+  - [ ] 6.4 Implement member routes in `app/blueprints/boards/routes.py`
     - Route 10: `GET /api/boards/{id}/members` (`list_members`, `get_board_for_user`, 200 `MemberOutSchema[]`)
     - Route 11: `POST /api/boards/{id}/members` (`add_member`, `require_admin`, 201 `MemberOutSchema`, `conflict=True`)
     - Route 12: `PATCH /api/boards/{id}/members/{user_id}` (`change_member_role`, `require_admin`, then target lookup, `conflict=True`)
@@ -207,12 +207,12 @@ Structure decisions that keep the tasks independent of each other:
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10, 6.11, 6.12, 23.1_
 
 - [ ] 7. Implement the columns blueprint
-  - [~] 7.1 Implement `app/blueprints/columns/schema.py` and `service.py`
+  - [ ] 7.1 Implement `app/blueprints/columns/schema.py` and `service.py`
     - Schemas: `ColumnCreateSchema`, `ColumnUpdateSchema`, `ColumnReorderSchema` (`StrictUUID` `column_id`, `OrderValue` `order`), `ColumnReorderOutSchema`
     - Service: `create_column` (lock board, `next_order`, `column_created` activity), `rename_column` (only `title` and `updated_at`), `delete_column` (`soft_delete()` on the column only), `reorder_columns` (lock board, find `column_id` among live columns of the board or 404, `plan_move`, write only changed rows, return sorted columns and `rebalanced`)
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 8.1, 8.2, 8.3, 8.4, 14.5_
 
-  - [~] 7.2 Implement `app/blueprints/columns/routes.py`
+  - [ ] 7.2 Implement `app/blueprints/columns/routes.py`
     - Route 14: `POST /api/boards/{id}/columns` (`create_column`, `get_board_for_user`, 201 `ColumnOutSchema`)
     - Route 15: `PATCH /api/columns/{id}` (`rename_column`, `get_column_for_user`, 200 `ColumnOutSchema`)
     - Route 16: `DELETE /api/columns/{id}` (`delete_column`, `get_column_for_user`, 200 `IdOutSchema`)
@@ -225,17 +225,17 @@ Structure decisions that keep the tasks independent of each other:
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 8.1, 8.2, 8.3, 8.4, 23.1_
 
 - [ ] 8. Implement the cards blueprint
-  - [~] 8.1 Implement card create, update and delete in `app/blueprints/cards/schema.py` and `service.py`
+  - [ ] 8.1 Implement card create, update and delete in `app/blueprints/cards/schema.py` and `service.py`
     - Schemas: `CardCreateSchema` and `CardUpdateSchema` (`StrictSchema`; update has the `at_least_one` rule)
     - Service: `create_card` (assignee must be a board member, lock board, `next_order`, `created_by` from the token, `card_created` activity, `card_assigned` notification unless the assignee is the caller), `update_card` (only supplied keys, `changed` rule, `completed_at` set once, cleared on `false`, `card_completed` logged once, `card_updated` when changed, `card_assigned` when the assignee changes to another user), `delete_card` (`soft_delete()`, `card_deleted` activity)
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.10, 14.1, 14.4, 14.5, 14.7_
 
-  - [~] 8.2 Implement card move, My Tasks and search in `app/blueprints/cards/schema.py` and `service.py`
+  - [ ] 8.2 Implement card move, My Tasks and search in `app/blueprints/cards/schema.py` and `service.py`
     - Schemas: `CardPositionSchema` (validated before the target column lookup), `SiblingOutSchema`, `CardMoveOutSchema`, `CardListQuerySchema` (`exactly_one` of `assignee=me` and `search`), `TaskGroupOutSchema`
     - Service: `move_card` (target column among live columns of the same board or 404, lock board, `plan_move` over the live siblings without the moved card, `card_moved` activity and notification only when the column changes, `siblings` only when rebalanced), `list_my_tasks` (calls `queries.my_tasks`, groups by `board_id` in first-seen order), `search` (calls `queries.search_cards` with the caller's id)
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 11.1, 11.2, 11.3, 11.4, 11.5, 14.2, 14.4, 14.5_
 
-  - [~] 8.3 Implement `app/blueprints/cards/routes.py`
+  - [ ] 8.3 Implement `app/blueprints/cards/routes.py`
     - Route 18: `POST /api/columns/{id}/cards` (`create_card`, `get_column_for_user`, 201 `CardOutSchema`)
     - Route 19: `GET /api/cards` (`list_cards`, `load_query` with `CardListQuerySchema`, branches to `list_my_tasks` or `search`, one operation documented with a `oneOf` data field)
     - Route 20: `PATCH /api/cards/{id}` (`update_card`, `get_card_for_user`, 200 `CardOutSchema`)
@@ -283,16 +283,16 @@ Structure decisions that keep the tasks independent of each other:
     - `assignee=me` grouped by board (two boards with the same name stay separate), `search=` hit and miss, neither parameter, both parameters, invalid `assignee`, empty and 201-character `search`
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 23.1_
 
-- [~] 9. Checkpoint - Ensure all tests pass
+- [ ] 9. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 10. Implement the comments blueprint
-  - [~] 10.1 Implement `app/blueprints/comments/schema.py` and `service.py`
+  - [ ] 10.1 Implement `app/blueprints/comments/schema.py` and `service.py`
     - Schemas: `CommentSchema` (`content` 1 to 5,000 with a non-whitespace character), `CommentOutSchema` (`content` from `Comment.body`, nested `author`)
     - Service: `create_comment` (`comment_added` activity, one notification per distinct non-null creator or assignee who is not the author and is still a board member, via one `IN` query on `board_members`), `list_comments` (order `created_at` asc), `update_comment`, `delete_comment` (`soft_delete()`)
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 14.3, 14.4, 14.5, 14.7_
 
-  - [~] 10.2 Implement `app/blueprints/comments/routes.py`
+  - [ ] 10.2 Implement `app/blueprints/comments/routes.py`
     - Route 23: `POST /api/cards/{id}/comments` (`create_comment`, `get_card_for_user`, 201 `CommentOutSchema`)
     - Route 24: `GET /api/cards/{id}/comments` (`list_comments`, `get_card_for_user`, 200 `CommentOutSchema[]`)
     - Route 25: `PATCH /api/comments/{id}` (`update_comment`, `get_comment_for_user` then `require_comment_owner`, 200 `CommentOutSchema`)
@@ -305,12 +305,12 @@ Structure decisions that keep the tasks independent of each other:
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 14.3, 23.1, 23.2_
 
 - [ ] 11. Implement the notifications blueprint
-  - [~] 11.1 Implement `app/blueprints/notifications/schema.py` and `service.py`
+  - [ ] 11.1 Implement `app/blueprints/notifications/schema.py` and `service.py`
     - Schemas: `NotificationListQuerySchema` (`DigitsInt` `page` and `per_page`, `offset_limit` rule naming `page`), `NotificationOutSchema`, `NotificationPageOutSchema`
     - Service: `list_notifications` (calls `queries.notifications_page` and a count; nulls `card_id` of cards that are not live records with one extra `select(Card.id)` query), `mark_read` (`parse_uuid`, 404 when missing or owned by another user, sets `is_read` only when false)
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7_
 
-  - [~] 11.2 Implement `app/blueprints/notifications/routes.py`
+  - [ ] 11.2 Implement `app/blueprints/notifications/routes.py`
     - Route 27: `GET /api/notifications` (`list_notifications`, `load_query`, 200 `NotificationPageOutSchema`)
     - Route 28: `PATCH /api/notifications/{id}/read` (`mark_read`, own-record lookup inside the service, 200 `NotificationOutSchema`)
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 17.1, 17.2_
@@ -331,12 +331,12 @@ Structure decisions that keep the tasks independent of each other:
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 23.1_
 
 - [ ] 12. Implement the analytics blueprint
-  - [~] 12.1 Implement `app/blueprints/analytics/schema.py` and `service.py`
+  - [ ] 12.1 Implement `app/blueprints/analytics/schema.py` and `service.py`
     - Schema: `AnalyticsOutSchema` (`cards_per_column`, `completed_this_week`, `member_activity`)
     - Service: `get_analytics` composing `queries.card_counts_per_column`, `queries.completed_this_week` and `queries.member_activity`
     - _Requirements: 15.1, 15.2, 15.3, 15.5, 15.6_
 
-  - [~] 12.2 Implement `app/blueprints/analytics/routes.py`
+  - [ ] 12.2 Implement `app/blueprints/analytics/routes.py`
     - Route 29: `GET /api/boards/{id}/analytics` (`get_analytics`, `get_board_for_user` then `require_admin`, 200 `AnalyticsOutSchema`)
     - _Requirements: 15.1, 15.4, 17.2, 17.3_
 
@@ -346,7 +346,7 @@ Structure decisions that keep the tasks independent of each other:
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 23.1_
 
 - [ ] 13. Implement the health blueprint
-  - [~] 13.1 Implement `app/blueprints/health/schema.py`, `service.py` and `routes.py`
+  - [ ] 13.1 Implement `app/blueprints/health/schema.py`, `service.py` and `routes.py`
     - Schema: `HealthOutSchema`; service: `get_status()` returning `{"status": "ok"}` with no database access
     - Route 30: `GET /api/health` (`health`, public, 200 `HealthOutSchema`)
     - _Requirements: 16.1, 16.2_
@@ -357,13 +357,13 @@ Structure decisions that keep the tasks independent of each other:
     - _Requirements: 16.1, 16.2, 23.1_
 
 - [ ] 14. Implement OpenAPI and Swagger UI assembly
-  - [~] 14.1 Implement `build_openapi` in `app/common/openapi.py`
+  - [ ] 14.1 Implement `build_openapi` in `app/common/openapi.py`
     - `APISpec(title="RevoTask API", version="1.0.0", openapi_version="3.0.3", plugins=[MarshmallowPlugin(...)])` with a resolver that strips a trailing `Schema`, the nine tags, the `bearerAuth` scheme and the `ErrorEnvelope` component
     - Walk `app.url_map` for `/api/` rules (skipping the documentation endpoints, `HEAD` and `OPTIONS`): path `<name>` becomes `{name}` with a required `string`/`uuid` parameter; query, request body and `<Name>Envelope` success schemas (from `Schema.from_dict`) from `__openapi__`; error responses 401, 404, 403, 400, 409 derived from the rule; `security` of `[]` for public routes; the `OneOfData` field for `GET /api/cards`
     - A route without metadata, or any apispec failure, raises `OpenAPIError` whose message starts with `OpenAPI`
     - _Requirements: 24.9, 24.10, 24.11, 24.12, 24.13, 24.14, 24.15, 24.16, 24.17, 24.19, 24.20, 24.21_
 
-  - [~] 14.2 Implement `register_docs` and wire it into `create_app`
+  - [ ] 14.2 Implement `register_docs` and wire it into `create_app`
     - Add `register_docs(app)` that builds the document once, stores `json.dumps(spec, sort_keys=True)` bytes and adds three `GET`-only URL rules (not a Blueprint, no `@protected`): `/api/docs` (HTML loading `/swagger-ui/swagger-ui.css` and `/swagger-ui/swagger-ui-bundle.js` with `url: "/api/openapi.json"`, no other host), `/api/openapi.json` (raw bytes, `application/json`, no envelope) and `/swagger-ui/<path:filename>` (`send_from_directory` from `swagger_ui_bundle.swagger_ui_path`)
     - In `app/__init__.py` call `register_docs(app)` after `register_blueprints(app)` only when `settings.swagger_enabled` is true
     - _Requirements: 24.1, 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.8, 24.21_
@@ -376,7 +376,7 @@ Structure decisions that keep the tasks independent of each other:
     - _Requirements: 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.9, 24.10, 24.11, 24.12, 24.13, 24.14, 24.15, 24.16, 24.17, 24.19, 24.20, 24.21, 24.22, 24.23_
 
 - [ ] 15. Add deployment configuration
-  - [~] 15.1 Create `railway.json`
+  - [ ] 15.1 Create `railway.json`
     - `deploy.startCommand` = `gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 30 "app:create_app()"`, `deploy.preDeployCommand` = `["flask db upgrade"]`, `deploy.healthcheckPath` = `/api/health`
     - _Requirements: 20.6, 20.8_
 
@@ -385,7 +385,7 @@ Structure decisions that keep the tasks independent of each other:
     - `.env` loading with process-environment precedence, blank and missing `JWT_SECRET_KEY` raises an error containing `JWT_SECRET_KEY` before any engine exists, `.env.example` is tracked and has the five `NAME=value` lines with placeholders, `requirements.txt` lines have `>=` and `<`, `railway.json` start and pre-deploy commands, `.coveragerc` has `fail_under = 80.0`
     - _Requirements: 20.1, 20.2, 20.3, 20.6, 20.7, 20.8, 20.9, 23.4_
 
-- [~] 16. Checkpoint - Ensure all tests pass
+- [ ] 16. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 17. Write cross-cutting and remaining property tests
@@ -485,7 +485,7 @@ Structure decisions that keep the tasks independent of each other:
     - Load `.coveragerc` and assert `source` is `app/blueprints` and `fail_under` is 80.0; run `coverage report --fail-under` against a temporary data file with measured coverage below the threshold and assert a non-zero exit and the measured percentage in the output
     - _Requirements: 23.4, 23.6_
 
-- [~] 18. Final checkpoint - Ensure all tests pass
+- [ ] 18. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
