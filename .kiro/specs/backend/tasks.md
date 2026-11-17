@@ -375,8 +375,8 @@ Structure decisions that keep the tasks independent of each other:
     - Docs page: `text/html`, no external host, assets under `/swagger-ui/` return 200, byte-identical document across requests, invalid token still 200, `SWAGGER_ENABLED=false` gives 404 envelopes, `POST` gives 405, an undocumented `/api/` route raises `OpenAPIError`
     - _Requirements: 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.9, 24.10, 24.11, 24.12, 24.13, 24.14, 24.15, 24.16, 24.17, 24.19, 24.20, 24.21, 24.22, 24.23_
 
-- [ ] 15. Add deployment configuration
-  - [ ] 15.1 Create `railway.json`
+- [x] 15. Add deployment configuration
+  - [x] 15.1 Create `railway.json`
     - `deploy.startCommand` = `gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 30 "app:create_app()"`, `deploy.preDeployCommand` = `["flask db upgrade"]`, `deploy.healthcheckPath` = `/api/health`
     - _Requirements: 20.6, 20.8_
 
