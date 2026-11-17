@@ -563,6 +563,16 @@
         "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
         "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
         "timestamp": 1794844108374
+      },
+      {
+        "executionId": "03752e25-cc5b-4bfe-a328-2e88a7dfa029",
+        "chatSessionId": "sess_4ce1a723-7713-42a3-884d-584733400ad8",
+        "timestamp": 1794917484295
+      },
+      {
+        "executionId": "03752e25-cc5b-4bfe-a328-2e88a7dfa029",
+        "chatSessionId": "sess_4ce1a723-7713-42a3-884d-584733400ad8",
+        "timestamp": 1794917731594
       }
     ],
     "14.2 Implement `register_docs` and wire it into `create_app`": [
@@ -570,6 +580,16 @@
         "executionId": "01af455b-974b-4584-ba7f-ebbdc5316e74",
         "chatSessionId": "sess_569f85c5-2d32-4fd3-91fd-cf1edf52c6e8",
         "timestamp": 1794844108450
+      },
+      {
+        "executionId": "03752e25-cc5b-4bfe-a328-2e88a7dfa029",
+        "chatSessionId": "sess_4ce1a723-7713-42a3-884d-584733400ad8",
+        "timestamp": 1794917731880
+      },
+      {
+        "executionId": "03752e25-cc5b-4bfe-a328-2e88a7dfa029",
+        "chatSessionId": "sess_4ce1a723-7713-42a3-884d-584733400ad8",
+        "timestamp": 1794917836988
       }
     ],
     "15.1 Create `railway.json`": [
@@ -680,6 +700,13 @@
         "executionId": "d4ff2421-5ed2-4665-92bb-1fde8e811b61",
         "chatSessionId": "sess_1a77e9e6-b896-454a-8fad-7f2bebfd161e",
         "timestamp": 1794917072387
+      }
+    ],
+    "14. Implement OpenAPI and Swagger UI assembly": [
+      {
+        "executionId": "03752e25-cc5b-4bfe-a328-2e88a7dfa029",
+        "chatSessionId": "sess_4ce1a723-7713-42a3-884d-584733400ad8",
+        "timestamp": 1794917837127
       }
     ]
   }

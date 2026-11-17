@@ -65,6 +65,10 @@ def create_app(verify_db: bool = True) -> Flask:
     from app import models  # noqa: F401  (register tables)
 
     register_blueprints(app)
+    if settings.swagger_enabled:
+        from app.common.openapi import register_docs
+
+        register_docs(app)
     from app.seed import seed_command
 
     app.cli.add_command(seed_command)

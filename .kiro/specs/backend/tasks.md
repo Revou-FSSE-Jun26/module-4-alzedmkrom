@@ -356,14 +356,14 @@ Structure decisions that keep the tasks independent of each other:
     - Payload is exactly `{"status": "ok"}`, no `Authorization` header needed, response under 1,000 ms, `POST` gives 405 with an Error_Envelope
     - _Requirements: 16.1, 16.2, 23.1_
 
-- [ ] 14. Implement OpenAPI and Swagger UI assembly
-  - [ ] 14.1 Implement `build_openapi` in `app/common/openapi.py`
+- [x] 14. Implement OpenAPI and Swagger UI assembly
+  - [x] 14.1 Implement `build_openapi` in `app/common/openapi.py`
     - `APISpec(title="RevoTask API", version="1.0.0", openapi_version="3.0.3", plugins=[MarshmallowPlugin(...)])` with a resolver that strips a trailing `Schema`, the nine tags, the `bearerAuth` scheme and the `ErrorEnvelope` component
     - Walk `app.url_map` for `/api/` rules (skipping the documentation endpoints, `HEAD` and `OPTIONS`): path `<name>` becomes `{name}` with a required `string`/`uuid` parameter; query, request body and `<Name>Envelope` success schemas (from `Schema.from_dict`) from `__openapi__`; error responses 401, 404, 403, 400, 409 derived from the rule; `security` of `[]` for public routes; the `OneOfData` field for `GET /api/cards`
     - A route without metadata, or any apispec failure, raises `OpenAPIError` whose message starts with `OpenAPI`
     - _Requirements: 24.9, 24.10, 24.11, 24.12, 24.13, 24.14, 24.15, 24.16, 24.17, 24.19, 24.20, 24.21_
 
-  - [ ] 14.2 Implement `register_docs` and wire it into `create_app`
+  - [x] 14.2 Implement `register_docs` and wire it into `create_app`
     - Add `register_docs(app)` that builds the document once, stores `json.dumps(spec, sort_keys=True)` bytes and adds three `GET`-only URL rules (not a Blueprint, no `@protected`): `/api/docs` (HTML loading `/swagger-ui/swagger-ui.css` and `/swagger-ui/swagger-ui-bundle.js` with `url: "/api/openapi.json"`, no other host), `/api/openapi.json` (raw bytes, `application/json`, no envelope) and `/swagger-ui/<path:filename>` (`send_from_directory` from `swagger_ui_bundle.swagger_ui_path`)
     - In `app/__init__.py` call `register_docs(app)` after `register_blueprints(app)` only when `settings.swagger_enabled` is true
     - _Requirements: 24.1, 24.2, 24.3, 24.4, 24.5, 24.6, 24.7, 24.8, 24.21_
