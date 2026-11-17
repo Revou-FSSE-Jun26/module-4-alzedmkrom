@@ -345,8 +345,8 @@ Structure decisions that keep the tasks independent of each other:
     - Response shape, empty columns give 0 and an empty list, week boundary with a patched clock, `member_activity` lists members with 0 actions, 403 for role `member`
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 23.1_
 
-- [ ] 13. Implement the health blueprint
-  - [ ] 13.1 Implement `app/blueprints/health/schema.py`, `service.py` and `routes.py`
+- [x] 13. Implement the health blueprint
+  - [x] 13.1 Implement `app/blueprints/health/schema.py`, `service.py` and `routes.py`
     - Schema: `HealthOutSchema`; service: `get_status()` returning `{"status": "ok"}` with no database access
     - Route 30: `GET /api/health` (`health`, public, 200 `HealthOutSchema`)
     - _Requirements: 16.1, 16.2_
