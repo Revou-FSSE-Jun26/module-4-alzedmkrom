@@ -307,8 +307,8 @@ Structure decisions:
     - Server Component. `serverApi.get<MyTasksGroup[]>('/api/cards?assignee=me')`. An empty list shows "No cards are assigned to you" and no section. Otherwise one `<section>` per group in API order, keyed by `board_id`, with an `h2` holding `board_name` and one list item per card in API order: the title, a `BaseBadge` (green "Completed" when `completed_at` is set, gray "Open" otherwise) and `<OpenBoardButton boardId={group.board_id} />`. A non-401 failure reaches `app/error.tsx`
     - _Requirements: 8.9, 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7, 23.1_
 
-- [ ] 12. Implement the profile page
-  - [ ] 12.1 Implement `components/ProfileForm.tsx` and `app/profile/page.tsx`
+- [x] 12. Implement the profile page
+  - [x] 12.1 Implement `components/ProfileForm.tsx` and `app/profile/page.tsx`
     - `page.tsx` is a Server Component that renders `ProfileForm`
     - `ProfileForm`: controlled `name` and `email` inputs through `FormField`, pre-populated from `useAuth().user`, and a primary submit `BaseButton`. Validate with `validateProfile`; errors show next to each invalid field and send nothing. Submit is disabled while `changedProfileFields` is empty or a request is pending
     - Send `PATCH /api/users/me` with only the changed fields (email trimmed). On 200 call `updateUser(response)` and show a success toast. A 409 shows the message next to `email`, keeps the values and re-enables submit. Any other error goes to `useErrorHandler`
