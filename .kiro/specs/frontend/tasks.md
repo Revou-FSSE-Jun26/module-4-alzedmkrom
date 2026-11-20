@@ -147,30 +147,30 @@ Structure decisions that keep the tasks independent of each other:
     - Highlight exactly one column through `overColumnId`, cleared on `drop` and `dragend`. A drop outside every column or an Escape cancel changes nothing and sends nothing
     - _Requirements: 11.7, 11.8, 11.9, 11.10, 13.1, 13.6, 13.7, 13.8, 13.9, 13.10, 13.11, 13.13, 13.14, 13.15_
 
-- [ ] 5. Implement the shared components
-  - [ ] 5.1 Implement `components/shared/BaseButton.tsx`
+- [x] 5. Implement the shared components
+  - [x] 5.1 Implement `components/shared/BaseButton.tsx`
     - Props `variant` (`primary` default, `secondary`, `destructive`), `loading` and all native button props. Render `<button type={type ?? 'button'} disabled={disabled || loading} aria-busy={loading}>` with a distinct Tailwind class set per variant, a spinner while loading, and `className` merged last. This is the only file that renders a native `button`
     - _Requirements: 8.1, 8.2, 8.3, 8.9_
 
-  - [ ] 5.2 Implement `components/shared/BaseBadge.tsx`
+  - [x] 5.2 Implement `components/shared/BaseBadge.tsx`
     - Props `color` (`gray` default, `blue`, `green`, `yellow`, `red`), `className`, `children`. Render a `span` with a distinct class set per color, using `-700` or `-800` text on `-100` backgrounds
     - _Requirements: 8.4_
 
-  - [ ] 5.3 Implement `components/shared/BaseModal.tsx`
+  - [x] 5.3 Implement `components/shared/BaseModal.tsx`
     - Props `open`, `title`, `onClose`, `children`, `size`. Return `null` while closed. While open, render through `createPortal` into `document.body` a backdrop and a `div role="dialog" aria-modal="true" aria-labelledby` pointing at the `h2` that holds the title. A backdrop click calls `onClose`, a click inside the dialog does not
     - A module-level `modalStack` makes only the topmost modal handle keys. One `document` `keydown` listener per open modal: Escape calls `onClose` once, Tab and Shift+Tab wrap focus between the first and last focusable element. On open, move focus within 100 ms to the first focusable element or to the dialog container (`tabIndex={-1}`). On close, restore focus to the remembered element when it is still connected, otherwise to `body`
     - Mobile: `max-h-[100dvh] max-w-full overflow-y-auto` on the dialog
     - _Requirements: 8.5, 8.6, 8.7, 8.8, 21.4, 22.1, 22.2, 22.3, 22.4_
 
-  - [ ] 5.4 Implement `components/shared/ConfirmModal.tsx`
+  - [x] 5.4 Implement `components/shared/ConfirmModal.tsx`
     - Props `open`, `title`, `message`, `confirmLabel`, `pending`, `onConfirm`, `onCancel`. A `BaseModal` with a destructive confirm `BaseButton` (disabled while `pending`) and a cancel `BaseButton` whose click calls `onCancel` and sends nothing
     - _Requirements: 8.8, 12.6, 14.13, 19.7, 19.10_
 
-  - [ ] 5.5 Implement `components/shared/FormField.tsx`
+  - [x] 5.5 Implement `components/shared/FormField.tsx`
     - Props `label`, `error`, `hint`, `children` as a render prop receiving `{ id, 'aria-invalid', 'aria-describedby' }`. Use `useId()`, render `<label htmlFor={id}>`, the control, and `<p id="{id}-error">` only while `error` is set. With no error, `aria-invalid` is false and `aria-describedby` is absent
     - _Requirements: 22.5, 22.8_
 
-  - [ ] 5.6 Implement `components/shared/FormAlert.tsx`
+  - [x] 5.6 Implement `components/shared/FormAlert.tsx`
     - Props `message`. Render `<div role="alert">` with the message while it is set and nothing otherwise
     - _Requirements: 3.6, 4.5, 22.8_
 
