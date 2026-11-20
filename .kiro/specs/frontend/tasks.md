@@ -298,12 +298,12 @@ Structure decisions:
     - Server Component with `{ params: Promise<{ id: string }> }`. Start `GET /api/boards/<id>` and `GET /api/boards/<id>/members` before awaiting either, then `Promise.all`. A 404 calls `notFound()`, a 403 renders `<NotMemberMessage />`, any other error is rethrown to `app/error.tsx`. Success renders `<BoardView initialBoard members />`
     - _Requirements: 10.1, 10.5, 10.6, 10.13, 13.12, 23.1, 23.3_
 
-- [ ] 11. Implement the My Tasks page
-  - [ ] 11.1 Implement `components/OpenBoardButton.tsx`
+- [x] 11. Implement the My Tasks page
+  - [x] 11.1 Implement `components/OpenBoardButton.tsx`
     - Client Component with the prop `boardId`: a secondary `BaseButton` labelled "Open board" whose `onClick` calls `router.push('/boards/' + boardId)`
     - _Requirements: 8.9, 16.5_
 
-  - [ ] 11.2 Implement `app/my-tasks/page.tsx`
+  - [x] 11.2 Implement `app/my-tasks/page.tsx`
     - Server Component. `serverApi.get<MyTasksGroup[]>('/api/cards?assignee=me')`. An empty list shows "No cards are assigned to you" and no section. Otherwise one `<section>` per group in API order, keyed by `board_id`, with an `h2` holding `board_name` and one list item per card in API order: the title, a `BaseBadge` (green "Completed" when `completed_at` is set, gray "Open" otherwise) and `<OpenBoardButton boardId={group.board_id} />`. A non-401 failure reaches `app/error.tsx`
     - _Requirements: 8.9, 16.1, 16.2, 16.3, 16.4, 16.5, 16.6, 16.7, 23.1_
 
