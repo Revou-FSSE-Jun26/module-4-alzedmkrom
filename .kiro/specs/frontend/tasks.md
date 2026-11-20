@@ -110,13 +110,13 @@ Structure decisions that keep the tasks independent of each other:
     - Start with `import 'server-only'`. Export `serverApi.get<T>(path)`: read the token through `getSessionToken`, redirect to `/login` when there is none, call `apiRequest('GET', path, { token })`, and on an `ApiError` with status 401 call `redirect('/login?reason=session-expired')` outside any `try` block. Rethrow every other error unchanged
     - _Requirements: 2.3_
 
-- [ ] 3. Implement the auth context and its test helper
-  - [ ] 3.1 Implement `context/AuthContext.tsx`
+- [x] 3. Implement the auth context and its test helper
+  - [x] 3.1 Implement `context/AuthContext.tsx`
     - Export `AuthContextValue`, `AuthContext`, `AuthProvider({ initialToken, initialUser, children })` and `useAuth()` (throws outside the provider). State is `useState` seeded from the props
     - `login(token, expiresIn, user)` writes the Session_Cookie with `writeSessionCookie`, then sets state. `clearSession()` clears state and the cookie with no navigation (F4). `logout()` calls `clearSession()`, `router.replace('/login')` and `router.refresh()` and sends no request. `updateUser(user)` replaces the user and leaves the token and cookie unchanged
     - _Requirements: 1.1, 1.7, 1.8, 2.5, 2.6_
 
-  - [ ] 3.2 Create `__tests__/helpers/renderWithAuth.tsx`
+  - [x] 3.2 Create `__tests__/helpers/renderWithAuth.tsx`
     - Render a tree inside `AuthContext.Provider` with a token, a user and spies for `login`, `logout`, `clearSession` and `updateUser`. Return the render result and the spies
     - _Requirements: 25.1, 25.3, 25.7_
 

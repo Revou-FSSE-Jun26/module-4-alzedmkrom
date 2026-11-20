@@ -218,6 +218,37 @@
         "chatSessionId": "sess_3b403755-2c44-4ec1-84fb-56699770edd3",
         "timestamp": 1795168705770
       }
+    ],
+    "3.1 Implement `context/AuthContext.tsx`": [
+      {
+        "executionId": "c0a69126-2300-4fa6-a47d-860a0538a704",
+        "chatSessionId": "sess_163b759a-7055-468a-aaa1-bfd91c9ff3fd",
+        "timestamp": 1795170573031
+      },
+      {
+        "executionId": "c0a69126-2300-4fa6-a47d-860a0538a704",
+        "chatSessionId": "sess_163b759a-7055-468a-aaa1-bfd91c9ff3fd",
+        "timestamp": 1795170671478
+      }
+    ],
+    "3.2 Create `__tests__/helpers/renderWithAuth.tsx`": [
+      {
+        "executionId": "c0a69126-2300-4fa6-a47d-860a0538a704",
+        "chatSessionId": "sess_163b759a-7055-468a-aaa1-bfd91c9ff3fd",
+        "timestamp": 1795170671867
+      },
+      {
+        "executionId": "c0a69126-2300-4fa6-a47d-860a0538a704",
+        "chatSessionId": "sess_163b759a-7055-468a-aaa1-bfd91c9ff3fd",
+        "timestamp": 1795170764419
+      }
+    ],
+    "3. Implement the auth context and its test helper": [
+      {
+        "executionId": "c0a69126-2300-4fa6-a47d-860a0538a704",
+        "chatSessionId": "sess_163b759a-7055-468a-aaa1-bfd91c9ff3fd",
+        "timestamp": 1795170764566
+      }
     ]
   }
 }
