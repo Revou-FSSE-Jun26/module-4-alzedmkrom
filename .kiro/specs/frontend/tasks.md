@@ -120,27 +120,27 @@ Structure decisions that keep the tasks independent of each other:
     - Render a tree inside `AuthContext.Provider` with a token, a user and spies for `login`, `logout`, `clearSession` and `updateUser`. Return the render result and the spies
     - _Requirements: 25.1, 25.3, 25.7_
 
-- [ ] 4. Implement the hooks
-  - [ ] 4.1 Implement `hooks/useApi.ts`
+- [x] 4. Implement the hooks
+  - [x] 4.1 Implement `hooks/useApi.ts`
     - `useApi()` returns `{ get, post, patch, delete }` bound to `useAuth().token` through `useMemo`, so the object is stable while the token is stable (F1)
     - _Requirements: 5.3_
 
-  - [ ] 4.2 Implement `hooks/useErrorHandler.ts`
+  - [x] 4.2 Implement `hooks/useErrorHandler.ts`
     - Export the pure `describeError(error)` returning `{ message, endsSession }` and `useErrorHandler()` returning `(error: unknown) => void`. Messages: 400 and 409 the `ApiError` message, 401 "Your session has expired. Please log in again.", 403 "You do not have permission to do this.", 404 "The requested item was not found.", 0 "Cannot reach the server. Check your connection.", everything else "Something went wrong. Please try again."
     - Show the toast only through `error` of `lib/toast.ts`. Call `logout()` once when `endsSession` is true and never for another status
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 24.4, 24.5_
 
-  - [ ] 4.3 Implement `hooks/useDebounce.ts`
+  - [x] 4.3 Implement `hooks/useDebounce.ts`
     - `useDebounce<T>(value, delayMs)` sets a `setTimeout` after every value change, clears it in the effect cleanup and returns the value that was current when the timer last fired
     - _Requirements: 15.2, 15.3_
 
-  - [ ] 4.4 Implement `hooks/useNotifications.ts`
+  - [x] 4.4 Implement `hooks/useNotifications.ts`
     - Constants `POLL_INTERVAL_MS = 30_000` and `PAGE_SIZE = 100`. Return `{ items, unreadCount, markAsRead, refresh }`. `refresh()` calls `GET /api/notifications?per_page=100` and replaces `items`, keeping ids of the `pendingReadIds` ref as read (F10)
     - One effect keyed on the token: null token does nothing, otherwise `refresh()` once and `setInterval(tick, 30_000)`, and the cleanup clears the interval and drops late responses. A non-401 polling failure keeps `items`, shows nothing and waits for the next tick. A 401 calls the error handler and stops polling
     - `markAsRead(id)` sets `is_read` true before the response, sends `PATCH /api/notifications/<id>/read`, and on failure sets it back to false and calls the error handler
     - _Requirements: 18.1, 18.2, 18.3, 18.6, 18.7, 18.8, 18.11_
 
-  - [ ] 4.5 Implement `hooks/useDragAndDrop.ts`
+  - [x] 4.5 Implement `hooks/useDragAndDrop.ts`
     - Export `DragAndDrop` and `useDragAndDrop({ boardId, state, dispatch, disabled })` with the state, props getters and functions of the design. Use only native HTML5 events (`draggable`, `dragstart`, `dragover`, `drop`, `dragend`), `setData('text/plain', id)` and a ref for the dragged kind and id. Block dragging while `disabled` (F7) or `isMoving` (F8)
     - Card drop: collect the vertical midpoints of the `[data-card-id]` elements of the target column without the dragged one and call `dropIndex` with `clientY`. Column drop: collect horizontal midpoints of the `[data-column-id]` elements without the dragged one and call `dropIndex` with `clientX` (F9)
     - `moveCard(cardId, targetColumnId, position | 'end')`: take the snapshot from a ref, compute `others` and `index`, return with no change and no request when the target and index are unchanged, otherwise compute the order with `orderForIndex`, dispatch `card/moved` before the request, send `PATCH /api/cards/<id>/position` with `{ column_id, order }`, apply `siblings` when `rebalanced` is true, and on failure dispatch `state/restored` and call the error handler. `moveColumn` follows the same shape with `PATCH /api/boards/<boardId>/columns/reorder` and `columns/orders-applied`
