@@ -594,6 +594,133 @@
         "chatSessionId": "sess_c5e7fff5-f8d6-44e5-8e1a-8726b8d6250b",
         "timestamp": 1795179652728
       }
+    ],
+    "10.1 Implement `components/CardItem.tsx`": [
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795179978082
+      },
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180055214
+      }
+    ],
+    "10.2 Implement `components/KanbanColumn.tsx`": [
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180064087
+      },
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180147026
+      }
+    ],
+    "10.3 Implement `components/CardSearch.tsx`": [
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180147882
+      },
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180274079
+      }
+    ],
+    "10.4 Implement `components/BoardHeader.tsx`": [
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180274463
+      },
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180377519
+      }
+    ],
+    "10.5 Implement `components/ColumnFormModal.tsx`": [
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180377709
+      },
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180487823
+      }
+    ],
+    "10.6 Implement `components/CardFormModal.tsx`": [
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180488434
+      },
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180623818
+      }
+    ],
+    "10.7 Implement `components/CommentList.tsx`": [
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180624107
+      },
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180747444
+      }
+    ],
+    "10.8 Implement `components/CardDetailModal.tsx`": [
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180747675
+      },
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180910415
+      }
+    ],
+    "10.9 Implement `components/BoardView.tsx`": [
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795180911118
+      },
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795183848671
+      }
+    ],
+    "10.10 Implement `app/boards/[id]/page.tsx`": [
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795183850846
+      },
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795183936074
+      }
+    ],
+    "10. Implement the board detail page": [
+      {
+        "executionId": "2503b0ac-142e-4e42-b710-72ff6647ed6c",
+        "chatSessionId": "sess_dc780e9e-7f5d-4d84-860e-81669be6f572",
+        "timestamp": 1795183936259
+      }
     ]
   }
 }

@@ -250,51 +250,51 @@ Structure decisions:
     - Server Component. `serverApi.get<Board[]>('/api/boards')`, a heading and `<CreateBoardModal />`. An empty list shows "You have no boards yet". Otherwise one `Link` to `/boards/<id>` per board in API order with the name and a `BaseBadge` showing the role (blue for `admin`, gray otherwise). A non-401 failure propagates to `app/error.tsx`
     - _Requirements: 9.1, 9.2, 9.3, 9.7, 23.1_
 
-- [ ] 10. Implement the board detail page
-  - [ ] 10.1 Implement `components/CardItem.tsx`
+- [x] 10. Implement the board detail page
+  - [x] 10.1 Implement `components/CardItem.tsx`
     - Props `card`, `assigneeName`, `dnd`, `onOpen`. Render `<li><div role="button" tabIndex={0} data-testid="card" data-card-id={id} {...dnd.cardDragProps(id)}>` (a `div`, not a native `button`, because it is draggable). Show the title, a green "Completed" `BaseBadge` when `completed_at` is set and the assignee name when `assignee_id` is set. Click and Enter call `onOpen`, with Enter only when `e.target === e.currentTarget`
     - _Requirements: 10.3, 22.7, 22.9_
 
-  - [ ] 10.2 Implement `components/KanbanColumn.tsx`
+  - [x] 10.2 Implement `components/KanbanColumn.tsx`
     - Props `column`, `cards`, `memberById`, `dnd`, `onAddCard`, `onRename`, `onDelete`, `onOpenCard`. Render `<section aria-labelledby data-column-id>` with a highlight ring while `dnd.overColumnId` equals the column id. The header carries `dnd.columnHandleProps(id)`, an `h2` with the title, a count `BaseBadge` with the number of shown cards, and rename and delete `BaseButton`s
     - The body is `<ul data-testid="column-cards" {...dnd.cardDropProps(id)}>` with one `CardItem` per card, in `order` ascending, and a "No cards" drop area when the column holds no cards to show. An "Add card" `BaseButton` sits at the bottom
     - _Requirements: 10.2, 10.4, 11.4, 11.6, 13.11, 15.4_
 
-  - [ ] 10.3 Implement `components/CardSearch.tsx`
+  - [x] 10.3 Implement `components/CardSearch.tsx`
     - Props `onResults(ids | null)`. A single-line input with `maxLength={200}` whose `onChange` also truncates typed or pasted text to 200 code points. `useDebounce(term, 300)` and the trimmed value drive one effect: an empty term bumps `latestRequest`, calls `onResults(null)` and sends nothing; otherwise `GET /api/cards?search=<encodeURIComponent(trimmed)>` with an incrementing request id
     - A response applies only when its id equals `latestRequest.current`. A stale response is dropped. A failure of the latest request goes to `useErrorHandler` with no inline message and no change to the shown cards
     - _Requirements: 15.1, 15.2, 15.3, 15.5, 15.7, 15.8_
 
-  - [ ] 10.4 Implement `components/BoardHeader.tsx`
+  - [x] 10.4 Implement `components/BoardHeader.tsx`
     - Props `board { id, name, role }` and `onRenamed(name)`. Show the name, a role `BaseBadge` and a link to `/boards/<id>/members` for every role. Only for `admin`: rename and delete `BaseButton`s and a link to `/boards/<id>/analytics`
     - Rename: `BaseModal` with a `name` input, `validateRequiredText('Name', v, 255)`, `PATCH /api/boards/<id>` with `{ name }`, on 200 `onRenamed(response.name)`, success toast and close. Delete: `ConfirmModal`, `DELETE /api/boards/<id>`, success toast and `router.push('/')`. A failure of either calls `useErrorHandler`, keeps the modal open and changes nothing
     - _Requirements: 10.7, 10.8, 10.9, 10.10, 10.11, 10.12, 22.5, 22.8_
 
-  - [ ] 10.5 Implement `components/ColumnFormModal.tsx`
+  - [x] 10.5 Implement `components/ColumnFormModal.tsx`
     - Props `mode` (`create` or `rename`), `open`, `boardId`, `column`, `onClose`, `onSaved`. A `title` input through `FormField`, empty in create mode and pre-filled in rename mode, validated with `validateRequiredText('Title', v, 255)`. Create sends `POST /api/boards/<boardId>/columns`, rename sends `PATCH /api/columns/<id>`. Submit is disabled while pending. A failure calls `useErrorHandler`, keeps the modal open with the title and re-enables submit
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.11, 22.5, 22.8_
 
-  - [ ] 10.6 Implement `components/CardFormModal.tsx`
+  - [x] 10.6 Implement `components/CardFormModal.tsx`
     - Props `open`, `columnId`, `members`, `onClose`, `onCreated`. Fields `title`, `description` and an `assignee` select (an empty option selected by default, then one option per member in API order). Title is required and at most 255, description at most 10,000. Submit sends `POST /api/columns/<columnId>/cards` with `{ title, description, assignee_id: selected || null }`; on 201 call `onCreated(card)`, close and show a success toast. A failure calls `useErrorHandler`, keeps the modal open with the values and re-enables submit
     - _Requirements: 12.1, 12.2, 12.3, 12.8, 12.9, 22.5, 22.8_
 
-  - [ ] 10.7 Implement `components/CommentList.tsx`
+  - [x] 10.7 Implement `components/CommentList.tsx`
     - Props `cardId`. State `comments` (null before the first response), draft, edit and delete state. `GET /api/cards/<cardId>/comments` once on mount, stored through `sortByCreatedAt(response, 'asc')`. A failed `GET` calls `useErrorHandler` and leaves `comments` null so "No comments yet" never shows. An empty list shows "No comments yet"
     - Each comment shows `content`, `author.name` and `formatDateTime(created_at)`. Edit and delete `BaseButton`s render only when `comment.author.id` equals the Current_User id. The create form (textarea with a visible label and a submit `BaseButton`) validates with `validateComment`, sends `POST /api/cards/<id>/comments`, appends the 201 response and clears the textarea. Edit swaps in a textarea with save and cancel `BaseButton`s and `PATCH /api/comments/<id>`; delete opens a `ConfirmModal` and sends `DELETE /api/comments/<id>`
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7, 14.8, 14.9, 14.10, 14.11, 14.12, 14.13, 22.5, 22.8_
 
-  - [ ] 10.8 Implement `components/CardDetailModal.tsx`
+  - [x] 10.8 Implement `components/CardDetailModal.tsx`
     - Props `card`, `columnId`, `columns`, `members`, `boardRole`, `dnd`, `onClose`, `onSaved`, `onDeleted`. A `BaseModal` with an edit form (`title`, `description`, `assignee` select, `completed` checkbox, pre-filled from the card), validated like `CardFormModal`. Submit is disabled while `changedCardFields` is empty or a request is pending, and sends `PATCH /api/cards/<id>` with only the changed fields, then `onSaved(response)`
     - A "Column" select lists `columns` and calls `dnd.moveCard(card.id, selectedColumnId, 'end')` on change. The delete `BaseButton` renders only when `card.created_by` equals the Current_User id or `boardRole` is `admin`; it opens a `ConfirmModal`, confirm sends `DELETE /api/cards/<id>` then `onDeleted(id)` and closes both modals, cancel closes only the confirmation. Render `CommentList` below the form. Failures call `useErrorHandler` and keep the entered values
     - _Requirements: 12.4, 12.5, 12.6, 12.7, 12.8, 12.10, 12.11, 13.13, 14.1, 22.5, 22.7, 22.8_
 
-  - [ ] 10.9 Implement `components/BoardView.tsx`
+  - [x] 10.9 Implement `components/BoardView.tsx`
     - Props `initialBoard` and `members`. State: `useReducer(boardReducer, initialBoard, initBoardState)`, `searchIds`, `modal` and `selectedCardId`. `useDragAndDrop` with `disabled: searchIds !== null`. Derive `memberById` and, per column, the shown cards with `visibleCards`
     - Render `BoardHeader`, a toolbar with `CardSearch` and an "Add column" `BaseButton`, and one container `<div class="flex gap-4 overflow-x-auto" {...dnd.columnDropProps()}>` with the columns in `order` ascending. Show "No cards match your search" when a filter is active and every column shows 0 cards. Column delete goes through `ConfirmModal` and `DELETE /api/columns/<id>`, then `column/removed`; a failure calls `useErrorHandler` and leaves the state unchanged
     - Render `ColumnFormModal` and `CardFormModal` from `modal`, and `CardDetailModal` from `selectedCardId`, closing it when `findCard` returns null. Dispatch `column/added` with an empty `cards` list, `column/renamed`, `card/added` (appended last), `card/replaced`, `card/removed` and `board/renamed`
     - _Requirements: 10.2, 10.3, 10.4, 11.3, 11.5, 11.6, 11.10, 12.9, 13.11, 15.4, 15.6, 21.3_
 
-  - [ ] 10.10 Implement `app/boards/[id]/page.tsx`
+  - [x] 10.10 Implement `app/boards/[id]/page.tsx`
     - Server Component with `{ params: Promise<{ id: string }> }`. Start `GET /api/boards/<id>` and `GET /api/boards/<id>/members` before awaiting either, then `Promise.all`. A 404 calls `notFound()`, a 403 renders `<NotMemberMessage />`, any other error is rethrown to `app/error.tsx`. Success renders `<BoardView initialBoard members />`
     - _Requirements: 10.1, 10.5, 10.6, 10.13, 13.12, 23.1, 23.3_
 
