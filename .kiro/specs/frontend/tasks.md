@@ -240,13 +240,13 @@ Structure decisions:
     - Submit sequence: `validateRegister`, on errors show one message per field and send nothing. Otherwise disable the button, `POST /api/auth/register` with the trimmed email. On 409 or 400 show the message in `FormAlert`, keep the values, show no toast and re-enable. On any other failure call `useErrorHandler`. After a 201 send exactly one `POST /api/auth/login` with the same trimmed email and password and never read a token from the register response. On a login 200 call `login` once, show one success toast ("Welcome to RevoTask!", F12) and `router.replace('/')`. On any login failure show the success toast "Account created. Please log in.", clear the form, `router.replace('/login')`, call `login` zero times and pass nothing to the error handler. The password stays in component state only
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 4.7, 22.5, 22.8, 24.4_
 
-- [ ] 9. Implement the dashboard
-  - [ ] 9.1 Implement `components/CreateBoardModal.tsx`
+- [x] 9. Implement the dashboard
+  - [x] 9.1 Implement `components/CreateBoardModal.tsx`
     - No props. A "Create board" `BaseButton` that is always rendered, and a `BaseModal` with a controlled `name` input through `FormField` and a submit `BaseButton`. Validate with `validateRequiredText('Name', value, 255)`; on an error keep the modal open and send nothing
     - On a valid name disable submit, `POST /api/boards` with the trimmed name, and on success close the modal, show a success toast and `router.push('/boards/' + id)`. On failure call `useErrorHandler`, keep the modal open with the value and re-enable submit
     - _Requirements: 9.3, 9.4, 9.5, 9.6, 22.5, 22.8_
 
-  - [ ] 9.2 Implement `app/page.tsx` (Dashboard)
+  - [x] 9.2 Implement `app/page.tsx` (Dashboard)
     - Server Component. `serverApi.get<Board[]>('/api/boards')`, a heading and `<CreateBoardModal />`. An empty list shows "You have no boards yet". Otherwise one `Link` to `/boards/<id>` per board in API order with the name and a `BaseBadge` showing the role (blue for `admin`, gray otherwise). A non-401 failure propagates to `app/error.tsx`
     - _Requirements: 9.1, 9.2, 9.3, 9.7, 23.1_
 
