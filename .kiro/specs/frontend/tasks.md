@@ -227,14 +227,14 @@ Structure decisions:
     - _Depends on: 1.3_
     - _Requirements: 10.6, 19.11_
 
-- [ ] 8. Implement the login and register pages
-  - [ ] 8.1 Implement `components/auth/LoginForm.tsx` and `app/login/page.tsx`
+- [x] 8. Implement the login and register pages
+  - [x] 8.1 Implement `components/auth/LoginForm.tsx` and `app/login/page.tsx`
     - `page.tsx` is a Server Component: `const { reason } = await searchParams` and `<LoginForm sessionExpired={reason === 'session-expired'} />`
     - `LoginForm` (Client Component, prop `sessionExpired`): controlled `email` and masked `password` inputs through `FormField`, a primary submit `BaseButton` with `type="submit"` and a link to `/register`. When a token is held and `sessionExpired` is false, render nothing and `router.replace('/')`. When `sessionExpired`, call `clearSession()` in an effect and show "Your session has expired. Please log in again."
     - Submit: an email with no non-whitespace character or an empty password shows a field error next to each such field and sends no request. Otherwise disable the button, `POST /api/auth/login`, then `login(access_token, expires_in, user)` and `router.replace('/')`. A 401 shows the message in `FormAlert` above the form and keeps the email. Any other error goes to `useErrorHandler`. Re-enable the button on failure
     - _Requirements: 2.4, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 22.5, 22.8, 24.4_
 
-  - [ ] 8.2 Implement `components/auth/RegisterForm.tsx` and `app/register/page.tsx`
+  - [x] 8.2 Implement `components/auth/RegisterForm.tsx` and `app/register/page.tsx`
     - `page.tsx` is a Server Component that renders `RegisterForm`
     - `RegisterForm`: controlled `name`, `email` and masked `password` inputs through `FormField` and a primary submit `BaseButton`. The same redirect-when-signed-in guard as `LoginForm`
     - Submit sequence: `validateRegister`, on errors show one message per field and send nothing. Otherwise disable the button, `POST /api/auth/register` with the trimmed email. On 409 or 400 show the message in `FormAlert`, keep the values, show no toast and re-enable. On any other failure call `useErrorHandler`. After a 201 send exactly one `POST /api/auth/login` with the same trimmed email and password and never read a token from the register response. On a login 200 call `login` once, show one success toast ("Welcome to RevoTask!", F12) and `router.replace('/')`. On any login failure show the success toast "Account created. Please log in.", clear the form, `router.replace('/login')`, call `login` zero times and pass nothing to the error handler. The password stays in component state only
