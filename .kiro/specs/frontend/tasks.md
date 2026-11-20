@@ -1,6 +1,6 @@
 # Implementation Plan: RevoTask Frontend
 
-Version: V2 (see `CHANGELOG.md`)
+Version: V3 (see `CHANGELOG.md`)
 
 ## Overview
 
@@ -8,7 +8,8 @@ Implementation is in TypeScript (Next.js 16.4.6 App Router, React 19.3.1, Tailwi
 
 All paths below are relative to `/frontend`. Component and property tests live in `__tests__/` (`shared`, `auth`, `hooks`, `lib`, `components`, `meta`, `helpers`), end-to-end tests in `e2e/`. Requirement numbers in task text refer to `requirements.md` (V2). Decision numbers `F1` to `F17` refer to the table "Decisions the requirements did not specify" in `design.md`.
 
-Structure decisions that keep the tasks independent of each other:
+Structure decisions:
+- Task 7 names its direct predecessors in a `_Depends on:_` line under each subtask (V3). The other tasks carry no such line.
 
 - The Route_Guard file is `proxy.ts` with `export function proxy`, not `middleware.ts` (design, "Next.js 16 specifics", Requirements Decision 16). Every page that takes a route parameter declares `{ params: Promise<{ id: string }> }` and awaits it.
 - Test files are written after all implementation tasks (tasks 16 to 22), as sub-tasks marked `*` under one parent per area. Test support files that other tests need (`__tests__/setup.ts`, `__tests__/helpers/server-only-stub.ts`, `__tests__/helpers/renderWithAuth.tsx`, `e2e/helpers/auth.ts`) are not optional and sit with the code they support.
@@ -174,47 +175,56 @@ Structure decisions that keep the tasks independent of each other:
     - Props `message`. Render `<div role="alert">` with the message while it is set and nothing otherwise
     - _Requirements: 3.6, 4.5, 22.8_
 
-- [ ] 6. Checkpoint - Ensure the foundation compiles
+- [x] 6. Checkpoint - Ensure the foundation compiles
   - Run `npm run typecheck` and `npm run lint` from `frontend/` and ensure both exit with code 0, ask the user if questions arise.
 
-- [ ] 7. Implement the app shell
-  - [ ] 7.1 Implement `components/NotificationBell.tsx`
+- [x] 7. Implement the app shell
+  - [x] 7.1 Implement `components/NotificationBell.tsx`
     - Use `useNotifications()`. A secondary `BaseButton` with `aria-label="Notifications"`, `aria-expanded` and an inline SVG bell with `aria-hidden`. Show a red `BaseBadge` with `formatUnreadCount(unreadCount)` only when it is not null
     - The open panel shows "No notifications" for an empty `items`, otherwise `sortByCreatedAt(items, 'desc')` as secondary `BaseButton` rows with the `message`, `formatDateTime(created_at)` and an unread marker only when `is_read` is false. A click on an unread item calls `markAsRead`, then `router.push('/boards/' + board_id)`, then closes the panel. Escape and a click outside close the panel
+    - _Depends on: 4.4, 2.6, 5.1, 5.2_
     - _Requirements: 18.4, 18.5, 18.6, 18.9, 22.6_
 
-  - [ ] 7.2 Implement `components/Header.tsx`
+  - [x] 7.2 Implement `components/Header.tsx`
     - Render the brand link, `NotificationBell` and a `<nav id="main-nav">` with links to `/`, `/my-tasks`, `/profile`, the user name and a "Log out" `BaseButton` that calls `logout()` and waits for no response. Below `sm` the nav has class `hidden` unless `menuOpen`, and a menu `BaseButton` (`aria-label="Toggle navigation"`, `aria-expanded`, `aria-controls="main-nav"`, class `sm:hidden`) toggles `menuOpen`. From `sm` up the nav is inline and the menu button is hidden by CSS only
+    - _Depends on: 7.1, 3.1, 5.1_
     - _Requirements: 2.5, 18.10, 21.2, 21.7, 21.8, 22.6_
 
-  - [ ] 7.3 Implement `components/AppShell.tsx`
+  - [x] 7.3 Implement `components/AppShell.tsx`
     - Use `usePathname()`. Render `Header` on every path except `/login` and `/register`, and wrap the children in `<main class="mx-auto w-full max-w-screen-2xl px-4 py-6">`
+    - _Depends on: 7.2_
     - _Requirements: 2.5, 18.10, 21.1_
 
-  - [ ] 7.4 Implement `app/layout.tsx`
+  - [x] 7.4 Implement `app/layout.tsx`
     - Server Component. Export `metadata` and the `viewport` export (`width=device-width, initial-scale=1`). Call `getServerSession()` and render `AuthProvider` with the initial token and user, `AppShell` and exactly one `Toaster` from `react-hot-toast`. Import `./globals.css`
     - A 401 from `/api/users/me` renders with a null session. Any other `ApiError` propagates to `app/global-error.tsx`
+    - _Depends on: 1.3, 2.9, 3.1, 7.3_
     - _Requirements: 1.3, 1.4, 1.5, 1.6, 6.4, 21.5, 21.6_
 
-  - [ ] 7.5 Implement `proxy.ts` (Route_Guard)
+  - [x] 7.5 Implement `proxy.ts` (Route_Guard)
     - `export function proxy(request: NextRequest)`: pass `/login` and `/register`, pass any other path when `request.cookies.get(SESSION_COOKIE)?.value` is a non-empty string, otherwise `NextResponse.redirect(new URL('/login', request.url))`. Do not validate the token
     - `export const config = { matcher: [...] }` excluding `_next/static`, `_next/image`, `favicon.ico` and static-asset extensions (`svg`, `png`, `jpg`, `jpeg`, `gif`, `webp`, `ico`, `css`, `js`, `map`, `txt`, `xml`)
+    - _Depends on: 2.8_
     - _Requirements: 2.1, 2.2, 2.6_
 
-  - [ ] 7.6 Implement `app/error.tsx`
+  - [x] 7.6 Implement `app/error.tsx`
     - Client Component receiving `{ error, retry }`. Render "Something went wrong." and a "Try again" `BaseButton` whose click calls `retry()`. Do not show `error.message` and do not log to the console
+    - _Depends on: 5.1_
     - _Requirements: 9.7, 10.13, 16.7_
 
-  - [ ] 7.7 Implement `app/global-error.tsx`
+  - [x] 7.7 Implement `app/global-error.tsx`
     - Client Component with its own `<html><body>`, importing `./globals.css`, with the same content and the same "Try again" button as `app/error.tsx`
+    - _Depends on: 1.3, 5.1, 7.6_
     - _Requirements: 1.6_
 
-  - [ ] 7.8 Implement `app/not-found.tsx`
+  - [x] 7.8 Implement `app/not-found.tsx`
     - Server Component with the text "Page not found" and a link to `/`
+    - _Depends on: 1.3_
     - _Requirements: 10.5, 19.11, 20.7_
 
-  - [ ] 7.9 Implement `components/NotMemberMessage.tsx`
+  - [x] 7.9 Implement `components/NotMemberMessage.tsx`
     - Server Component with `<p>You are not a member of this board</p>` and a `Link` to `/`
+    - _Depends on: 1.3_
     - _Requirements: 10.6, 19.11_
 
 - [ ] 8. Implement the login and register pages
@@ -718,14 +728,14 @@ Structure decisions that keep the tasks independent of each other:
     {
       "id": 3,
       "tasks": [
-        "2.3", "2.5", "2.7", "3.1", "5.4", "7.5", "7.6", "7.7", "11.1", "14.1",
+        "2.3", "2.5", "2.7", "3.1", "5.4", "7.5", "7.6", "11.1", "14.1",
         "16.1", "16.5", "16.6", "16.11", "16.12", "16.14", "17.5", "18.1", "18.2", "18.3", "18.5"
       ]
     },
     {
       "id": 4,
       "tasks": [
-        "2.9", "3.2", "4.1", "4.2",
+        "2.9", "3.2", "4.1", "4.2", "7.7",
         "16.2", "16.3", "16.7", "16.8", "16.9", "16.15", "16.17", "16.18", "16.21", "18.4", "19.6"
       ]
     },
