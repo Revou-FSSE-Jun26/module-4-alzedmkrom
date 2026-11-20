@@ -60,53 +60,53 @@ Structure decisions that keep the tasks independent of each other:
     - `.gitignore` entries: `.next/`, `node_modules/`, `.env`, `.env.local`, `.env.*.local`, `coverage/`, `test-results/`, `next-env.d.ts`, `*.tsbuildinfo`. No entry matches `.env.example`, and `playwright-report/` is not listed
     - _Requirements: 26.8, 27.1, 27.2, 27.3_
 
-- [ ] 2. Implement the `lib` modules
-  - [ ] 2.1 Implement `lib/errors.ts` and `lib/toast.ts`
+- [x] 2. Implement the `lib` modules
+  - [x] 2.1 Implement `lib/errors.ts` and `lib/toast.ts`
     - `ApiError extends Error` with `readonly statusCode: number`, constructor `(statusCode, message)` calling `super(message)` and setting `name = 'ApiError'`
     - `lib/toast.ts` exports `success`, `error`, `loading` and `dismiss`, each calling the matching `react-hot-toast` function exactly once with the same arguments and returning the toast id. It is the only file besides `app/layout.tsx` that imports `react-hot-toast`
     - _Requirements: 5.6, 6.1, 6.2, 6.3, 6.5, 24.5_
 
-  - [ ] 2.2 Implement `lib/types.ts`
+  - [x] 2.2 Implement `lib/types.ts`
     - Export `Role`, `NotificationType`, `User`, `RegisteredUser`, `LoginResponse`, `Board`, `Column`, `Card`, `ColumnWithCards`, `BoardDetail`, `Member`, `Comment`, `Notification`, `NotificationPage`, `MyTasksGroup`, `Analytics`, `CardMoveResult`, `ColumnReorderResult`, `DeletedId` and `MemberRemoved` exactly as in the Data Models section of `design.md`. No other module declares a type for the same response
     - _Requirements: 5.9_
 
-  - [ ] 2.3 Implement `lib/apiClient.ts`
+  - [x] 2.3 Implement `lib/apiClient.ts`
     - `resolveBaseUrl()`: server (`typeof window === 'undefined'`) reads the literal `process.env.API_BASE_URL` and falls back to the literal `process.env.NEXT_PUBLIC_API_BASE_URL` only when `API_BASE_URL` is unset, client reads `NEXT_PUBLIC_API_BASE_URL`. Trim the value, throw an `Error` whose message names the variable when it is empty, and strip every trailing `/`
     - `apiRequest<T>(method, path, { token, body })` builds the URL from the base and the `/api/...` path, sends `Authorization: Bearer <token>` only for a non-empty token, sends `Content-Type: application/json` and a JSON body only when a body is given, adds `cache: 'no-store'` on the server, turns a rejected `fetch` into `ApiError(0, 'Network request failed')`, returns the `data` field for statuses 200 to 299 (an `ApiError` `Invalid response from server` when `data` is missing) and throws `ApiError(status, error)` otherwise, with the fallback message `Request failed with status <status>`
     - Export `apiClient` with `get`, `post`, `patch` and `delete`. Reference both environment variables as literal `process.env.NAME` expressions so that Next inlines them
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.10_
 
-  - [ ] 2.4 Implement `lib/order.ts` (Order_Helper)
+  - [x] 2.4 Implement `lib/order.ts` (Order_Helper)
     - `orderBetween(above, below)`: both neighbours give `(above + below) / 2` with no rounding, only a lower neighbour gives `above + 1.0`, only an upper neighbour gives `below / 2`, none gives exactly `1.0`
     - `orderForIndex(sortedOthers, index)` maps an index from 0 to the list length onto `orderBetween`. `dropIndex(midpoints, pointer)` returns the index of the first midpoint greater than the pointer coordinate, or the list length
     - _Requirements: 11.7, 13.2, 13.3, 13.4, 13.5, 13.13, 13.14_
 
-  - [ ] 2.5 Implement `lib/validation.ts`
+  - [x] 2.5 Implement `lib/validation.ts`
     - Export `LIMITS`, `codePointLength` (F5), `isValidEmail` (the grammar of Requirement 3.2, F6), `validateEmail`, `validateRegister` (name and password untrimmed, email trimmed), `validateLogin`, `validateProfile`, `validateRequiredText`, `validateOptionalText`, `validateComment` and the `FieldErrors` type. Every validator returns `null` or the message to show
     - Add `changedCardFields(card, values)` (keys among `title`, `description`, `assignee_id`, `completed` whose value differs, comparing `description` with `card.description ?? ''` and `completed` with `card.completed_at !== null`) and `changedProfileFields(user, values)` (`name` and trimmed `email`)
     - _Requirements: 3.2, 3.3, 4.2, 9.4, 10.10, 11.2, 12.2, 12.5, 12.10, 12.11, 14.5, 17.2, 17.3, 17.4, 19.3_
 
-  - [ ] 2.6 Implement `lib/collections.ts` and `lib/format.ts`
+  - [x] 2.6 Implement `lib/collections.ts` and `lib/format.ts`
     - `collections.ts`: `sortByOrder`, `sortByCreatedAt(items, 'asc' | 'desc')`, `sortByActionsDesc` (all stable) and `barPercentages(counts)` (`count / max * 100`, all 0 when the maximum is 0)
     - `format.ts`: `formatUnreadCount` (null for 0, `"99+"` above 99, else the decimal text), `formatDateTime` (`toLocaleString()`) and `formatDate` (`toLocaleDateString()`)
     - _Requirements: 14.2, 18.4, 18.5, 20.2, 20.4_
 
-  - [ ] 2.7 Implement `lib/boardState.ts`
+  - [x] 2.7 Implement `lib/boardState.ts`
     - Export `BoardState`, `BoardAction`, `initBoardState`, `boardReducer`, `findCard` and `visibleCards(cards, searchIds)` (the cards whose id is in the set, order preserved, all cards when the set is `null`)
     - Reducer rules: every action returns a new object and never mutates its input. `card/moved` removes the card from its column, inserts `{ ...card, order }` into the target column and re-sorts it stably. `column/moved` re-sorts the columns. `*/orders-applied` overwrites `order` by id, ignores unknown ids and re-sorts. `card/replaced` keeps the position. `column/added` appends a column with an empty `cards` list in `order` position. `state/restored` returns the snapshot itself
     - _Requirements: 10.2, 11.3, 11.5, 11.6, 11.7, 11.8, 11.10, 12.5, 12.6, 12.9, 13.7, 13.9, 13.10, 15.4, 15.6_
 
-  - [ ] 2.8 Implement `lib/session.ts`
+  - [x] 2.8 Implement `lib/session.ts`
     - Export `SESSION_COOKIE = 'revotask_token'`, the pure `buildSessionCookie(token, maxAgeSeconds, secure)` (value `encodeURIComponent(token)`, `Path=/`, `SameSite=Lax`, `Max-Age=<n>`, `Secure` only when the flag is true, never `HttpOnly`), and the browser-only `writeSessionCookie(token, expiresIn)` (`secure` is `location.protocol === 'https:'`) and `clearSessionCookie()` (same `Path=/`, `Max-Age=0`)
     - The module must be safe to import from `proxy.ts` and from Client Components
     - _Requirements: 1.1, 1.2, 1.7_
 
-  - [ ] 2.9 Implement `lib/serverSession.ts`
+  - [x] 2.9 Implement `lib/serverSession.ts`
     - Start with `import 'server-only'`. Export `getSessionToken` (React `cache()`, awaits `cookies()`, an empty value counts as no token) and `getServerSession` (`cache()`): no token gives `{ token: null, user: null }` with no request, `GET /api/users/me` success gives the token and the user, a 401 gives the null pair without throwing, any other `ApiError` is rethrown
     - This is the only module under `app/`, `components/`, `hooks/` and `context/` that reads the `revotask_token` cookie on the server
     - _Requirements: 1.3, 1.4, 1.5, 1.6, 1.9_
 
-  - [ ] 2.10 Implement `lib/serverApi.ts`
+  - [x] 2.10 Implement `lib/serverApi.ts`
     - Start with `import 'server-only'`. Export `serverApi.get<T>(path)`: read the token through `getSessionToken`, redirect to `/login` when there is none, call `apiRequest('GET', path, { token })`, and on an `ApiError` with status 401 call `redirect('/login?reason=session-expired')` outside any `try` block. Rethrow every other error unchanged
     - _Requirements: 2.3_
 
