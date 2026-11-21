@@ -314,17 +314,17 @@ Structure decisions:
     - Send `PATCH /api/users/me` with only the changed fields (email trimmed). On 200 call `updateUser(response)` and show a success toast. A 409 shows the message next to `email`, keeps the values and re-enables submit. Any other error goes to `useErrorHandler`
     - _Requirements: 8.9, 17.1, 17.2, 17.3, 17.4, 17.5, 17.6, 17.7, 22.5, 22.8_
 
-- [ ] 13. Implement the board members page
-  - [ ] 13.1 Implement `components/AddMemberModal.tsx`
+- [x] 13. Implement the board members page
+  - [x] 13.1 Implement `components/AddMemberModal.tsx`
     - Props `boardId` and `onAdded(member)`. A trigger `BaseButton` and a `BaseModal` with an `email` input (`maxLength` 254, `validateEmail`), a `role` select (`member` default, `admin`) and a submit `BaseButton`. Send `POST /api/boards/<boardId>/members` with the trimmed email and the role; on 201 call `onAdded`, close and show a success toast. A failure calls `useErrorHandler` and keeps the modal open with the values
     - _Requirements: 19.2, 19.3, 19.4, 19.8, 22.5, 22.8_
 
-  - [ ] 13.2 Implement `components/MemberList.tsx`
+  - [x] 13.2 Implement `components/MemberList.tsx`
     - Props `boardId`, `initialMembers`, `currentUserId`, `isAdmin`. Rows in API order with `name`, `email`, a role `BaseBadge` and `<time suppressHydrationWarning>` with `formatDate(created_at)` (F11). For an admin: `AddMemberModal`, a role select per row (`PATCH /api/boards/<boardId>/members/<user_id>`, replace the role from the response, reset the select on failure) and a "Remove" `BaseButton` per row. For a member: a "Leave board" `BaseButton` only on the own row, and no select, remove or add control
     - Removal and leaving go through `ConfirmModal` and `DELETE /api/boards/<boardId>/members/<user_id>`. Removing another member deletes the row, removing oneself calls `router.push('/')`. Failures call `useErrorHandler` and leave the list unchanged
     - _Requirements: 19.1, 19.5, 19.6, 19.7, 19.8, 19.9, 19.10_
 
-  - [ ] 13.3 Implement `app/boards/[id]/members/page.tsx`
+  - [x] 13.3 Implement `app/boards/[id]/members/page.tsx`
     - Server Component. `Promise.all([serverApi.get<Member[]>('/api/boards/<id>/members'), getServerSession()])`. A 404 calls `notFound()`, a 403 renders `<NotMemberMessage />`. `isAdmin` is true when the member whose `user_id` equals the session user id has the role `admin`. Render `<MemberList />`
     - _Requirements: 19.1, 19.11, 23.1_
 
