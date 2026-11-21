@@ -328,12 +328,12 @@ Structure decisions:
     - Server Component. `Promise.all([serverApi.get<Member[]>('/api/boards/<id>/members'), getServerSession()])`. A 404 calls `notFound()`, a 403 renders `<NotMemberMessage />`. `isAdmin` is true when the member whose `user_id` equals the session user id has the role `admin`. Render `<MemberList />`
     - _Requirements: 19.1, 19.11, 23.1_
 
-- [ ] 14. Implement the analytics page
-  - [ ] 14.1 Implement `components/AnalyticsPanel.tsx`
+- [x] 14. Implement the analytics page
+  - [x] 14.1 Implement `components/AnalyticsPanel.tsx`
     - Server-compatible component with no hook and no directive. Props `cardsPerColumn`, `completedThisWeek`, `memberActivity`. One bar per item in API order with the title and the integer count as text and a `div role="img" aria-label="<title>: <count>"` whose inline `width` comes from `barPercentages`. An empty `cardsPerColumn` shows "This board has no columns". Show `completedThisWeek` next to the label "Completed this week" and one entry per member from `sortByActionsDesc(memberActivity)` with the name and `actions`
     - _Requirements: 20.2, 20.3, 20.4, 20.6_
 
-  - [ ] 14.2 Implement `app/boards/[id]/analytics/page.tsx`
+  - [x] 14.2 Implement `app/boards/[id]/analytics/page.tsx`
     - Server Component. `serverApi.get<Analytics>('/api/boards/<id>/analytics')` once. A 403 renders "Analytics are available to board administrators" and a link to `/boards/<id>` with no chart, count or member list. A 404 calls `notFound()`. Success renders `<AnalyticsPanel />`
     - _Requirements: 20.1, 20.5, 20.7, 23.1_
 
