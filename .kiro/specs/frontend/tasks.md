@@ -337,7 +337,7 @@ Structure decisions:
     - Server Component. `serverApi.get<Analytics>('/api/boards/<id>/analytics')` once. A 403 renders "Analytics are available to board administrators" and a link to `/boards/<id>` with no chart, count or member list. A 404 calls `notFound()`. Success renders `<AnalyticsPanel />`
     - _Requirements: 20.1, 20.5, 20.7, 23.1_
 
-- [ ] 15. Checkpoint - Ensure the application builds
+- [x] 15. Checkpoint - Ensure the application builds
   - Copy `.env.example` to `.env.local`, then run `npm run typecheck` and `npm run build` from `frontend/` and ensure both exit with code 0, ask the user if questions arise.
 
 - [ ] 16. Write the lib and pure-logic tests
@@ -662,11 +662,11 @@ Structure decisions:
     - `package.json` has no chart, drag-and-drop or state-management package and defines the six scripts with non-empty commands. `tsconfig.json` has `strict: true` and no strict-family flag set to false. `.env.example` has the three variables with `localhost` URLs, no trailing slash and no secret. `.gitignore` lists the required entries, does not match `.env.example` and does not list `playwright-report/`. No file under `__tests__/` or `e2e/` contains `.skip`, `.todo`, `.only`, `xit`, `xdescribe`, `waitForTimeout` or a real-time sleep. `tailwind.config.ts` and `app/globals.css` declare no other CSS framework
     - _Requirements: 21.6, 23.4, 24.1, 25.1, 25.8, 26.6, 26.8, 27.1, 27.3, 27.8_
 
-- [ ] 23. Checkpoint - Ensure all tests pass
+- [x] 23. Checkpoint - Ensure all tests pass
   - Run `npm run lint`, `npm run typecheck` and `npm test` from `frontend/`, ensure all tests pass with 0 failed and 0 skipped, ask the user if questions arise.
 
-- [ ] 24. Write the Playwright end-to-end suite
-  - [ ] 24.1 Create `e2e/helpers/auth.ts`
+- [x] 24. Write the Playwright end-to-end suite
+  - [x] 24.1 Create `e2e/helpers/auth.ts`
     - `TestUser` and `newUser()`: email `e2e-<Date.now()>-<12-character random hex>@example.com`, a name of 1 to 255 characters and a generated password of 8 to 128 characters. No stored credentials
     - `registerThroughUi(page, { user, expectLogoutButton })`: go to `/register`, fill the labelled fields, submit, `await expect(page).toHaveURL((u) => u.pathname === '/')`, then expect the "Log out" button visible unless `expectLogoutButton` is false. `logoutThroughUi(page)`: open the menu first when the menu button is visible, then click "Log out"
     - _Requirements: 26.2, 26.5, 26.6, 26.7_
