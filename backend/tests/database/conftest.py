@@ -1,62 +1,80 @@
-﻿"""Shared fixtures, strategies and the field registry for database tests.
+"""Fixtures for database tests (DB-TST-01). PostgreSQL 18 only, never SQLite.
 
-Uses PostgreSQL 18. If TEST_DATABASE_URL is set it is used as is. Otherwise a
-throwaway cluster is started from the locally installed PostgreSQL 18 binaries
-(initdb + pg_ctl in a temp directory) and removed at session end. SQLite is
-never used. The schema is built once per session with `flask db upgrade`.
+TEST_DATABASE_URL is used as is when set. Otherwise a throwaway PostgreSQL 18
+cluster is started with initdb and pg_ctl in a temp directory, bound to
+127.0.0.1 on a free port, and removed at session end.
+
+The app factory (`app.create_app`) is not used here. It imports every
+blueprint, and the blueprints are outside the database layer. While they
+still import the removed V3 models, importing `app` fails. The `app` package
+is therefore registered as a bare namespace, so `app.models`, `app.extensions`
+and `app.seed` load without running `app/__init__.py`. `make_app` builds a
+Flask app with the same extensions and the seed command.
 """
+
 import os
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
+import types
 import uuid
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-from hypothesis import HealthCheck, settings, strategies as st
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
-
-# ---------------------------------------------------------------------------
-# Hypothesis profile
-# ---------------------------------------------------------------------------
-settings.register_profile(
-    "database",
-    max_examples=100,
-    deadline=None,
-    suppress_health_check=[HealthCheck.function_scoped_fixture],
-)
-settings.load_profile("database")
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 TEST_DB_ENV = "TEST_DATABASE_URL"
-
-# ---------------------------------------------------------------------------
-# Field registry: (table, column, min, max, nullable). Matches CHECK limits.
-# For nullable fields min is 0 (NULL is allowed in addition to the range).
-# ---------------------------------------------------------------------------
-FieldSpec = tuple  # (table, column, min_len, max_len, nullable)
-
-FIELD_REGISTRY = [
-    ("users", "name", 1, 255, False),
-    ("users", "email", 3, 254, False),
-    ("boards", "name", 1, 255, False),
-    ("columns", "title", 1, 255, False),
-    ("cards", "title", 1, 255, False),
-    ("cards", "description", 0, 10000, True),
-    ("comments", "body", 1, 5000, False),
-    ("notifications", "type", 1, 50, False),
-    ("notifications", "message", 1, 500, False),
-    ("activity_logs", "action", 1, 100, False),
-]
-
-# ---------------------------------------------------------------------------
-# Session-scoped schema
-# ---------------------------------------------------------------------------
-
-
 PG_MAJOR = 18
+
+
+def _register_app_package_without_factory() -> None:
+    """Import `app.*` submodules without running `app/__init__.py`."""
+    if "app" in sys.modules:
+        return
+    pkg = types.ModuleType("app")
+    pkg.__path__ = [str(BACKEND_DIR / "app")]
+    sys.modules["app"] = pkg
+
+
+_register_app_package_without_factory()
+
+
+def make_app(url: str):
+    """Flask app with the database extensions, migrations and seed command."""
+    from flask import Flask
+
+    from app.extensions import db, migrate
+    from app.seed import seed_command
+
+    flask_app = Flask("revotask-database-tests")
+    flask_app.config.update(
+        SQLALCHEMY_DATABASE_URI=url,
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    )
+    db.init_app(flask_app)
+    migrate.init_app(
+        flask_app,
+        db,
+        compare_type=True,
+        render_as_batch=False,
+        transaction_per_migration=True,
+    )
+    flask_app.cli.add_command(seed_command)
+    return flask_app
+
+
+def migrations_dir() -> str:
+    return str(BACKEND_DIR / "migrations")
+
+
+# ---------------------------------------------------------------------------
+# Throwaway PostgreSQL 18 cluster
+# ---------------------------------------------------------------------------
 
 
 def _pg_bin_dir():
@@ -66,8 +84,10 @@ def _pg_bin_dir():
     found = shutil.which("pg_ctl")
     if found:
         return Path(found).parent
-    for root in (Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "PostgreSQL",
-                 Path("/usr/lib/postgresql")):
+    for root in (
+        Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "PostgreSQL",
+        Path("/usr/lib/postgresql"),
+    ):
         cand = root / str(PG_MAJOR) / "bin"
         if cand.is_dir():
             return cand
@@ -76,19 +96,22 @@ def _pg_bin_dir():
 
 @pytest.fixture(scope="session")
 def database_url(tmp_path_factory):
-    """URL of the test database: TEST_DATABASE_URL, else a temp PG18 cluster."""
+    """URL of the test server. Must be PostgreSQL 18."""
     url = os.environ.get(TEST_DB_ENV)
     if url and url.strip():
         yield url
         return
+
     bindir = _pg_bin_dir()
     if bindir is None:
         pytest.skip(f"{TEST_DB_ENV} not set and PostgreSQL {PG_MAJOR} binaries not found")
+
     exe = ".exe" if os.name == "nt" else ""
     data = tmp_path_factory.mktemp("pgdata")
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         port = s.getsockname()[1]
+
     subprocess.run(
         [str(bindir / f"initdb{exe}"), "-D", str(data), "-U", "postgres",
          "-A", "trust", "-E", "UTF8", "--no-sync"],
@@ -104,39 +127,70 @@ def database_url(tmp_path_factory):
     try:
         yield f"postgresql://postgres@127.0.0.1:{port}/postgres"
     finally:
-        subprocess.run([str(bindir / f"pg_ctl{exe}"), "-D", str(data), "-m", "immediate", "-w", "stop"],
-                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            [str(bindir / f"pg_ctl{exe}"), "-D", str(data), "-m", "immediate", "-w", "stop"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
         log.unlink(missing_ok=True)
 
 
-@pytest.fixture(scope="session")
-def app(database_url):
-    url = database_url
-    if not url.startswith(("postgres://", "postgresql://", "postgresql+")):
-        pytest.fail(f"{TEST_DB_ENV} must be a PostgreSQL URL, never SQLite")
+def _assert_pg18(conn) -> None:
+    version = int(conn.execute(text("SHOW server_version_num")).scalar())
+    if version // 10000 != PG_MAJOR:
+        pytest.fail(f"PostgreSQL {PG_MAJOR} required, server_version_num={version}")
 
-    os.environ["DATABASE_URL"] = url
+
+@pytest.fixture(scope="session")
+def flask_app(database_url):
+    """Session app. The schema is built with `upgrade` (same as `flask db upgrade`)."""
+    if not database_url.startswith(("postgres://", "postgresql://", "postgresql+")):
+        pytest.fail(f"{TEST_DB_ENV} must be a PostgreSQL URL, never SQLite")
     from flask_migrate import upgrade
 
-    from app import create_app
-
-    flask_app = create_app()
-    with flask_app.app_context():
-        from app.extensions import db
-
-        with db.engine.connect() as conn:
-            version = int(conn.exec_driver_sql("SHOW server_version_num").scalar())
-        if version // 10000 != PG_MAJOR:
-            pytest.fail(f"PostgreSQL {PG_MAJOR} required, server_version_num={version}")
-        upgrade(directory=str(BACKEND_DIR / "migrations"))  # == `flask db upgrade`
-    return flask_app
-
-@pytest.fixture(scope="session")
-def engine(app):
     from app.extensions import db
 
-    with app.app_context():
-        yield db.engine
+    url = database_url.replace("postgres://", "postgresql://", 1)
+    flask_app = make_app(url)
+    with flask_app.app_context():
+        with db.engine.connect() as conn:
+            _assert_pg18(conn)
+        upgrade(directory=migrations_dir())
+    return flask_app
+
+
+@pytest.fixture(scope="session", autouse=True)
+def app_context(flask_app):
+    """Models use Flask-SQLAlchemy's `Model.query`, which needs an app context."""
+    with flask_app.app_context():
+        yield flask_app
+
+
+@pytest.fixture(scope="session")
+def engine(app_context):
+    from app.extensions import db
+
+    return db.engine
+
+
+@pytest.fixture()
+def scratch_url(database_url):
+    """A new empty database on the same server, dropped after the test."""
+    url = make_url(database_url.replace("postgres://", "postgresql://", 1))
+    name = f"scratch_{uuid.uuid4().hex[:12]}"
+    admin = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT")
+    with admin.connect() as conn:
+        conn.execute(text(f'CREATE DATABASE "{name}"'))
+    try:
+        yield url.set(database=name).render_as_string(hide_password=False)
+    finally:
+        with admin.connect() as conn:
+            conn.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
+        admin.dispose()
+
+
+# ---------------------------------------------------------------------------
+# Transaction-scoped sessions. Every test rolls back.
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture()
@@ -153,10 +207,7 @@ def conn(engine):
 
 @pytest.fixture()
 def session(conn):
-    """ORM session joined to the rolled-back transaction.
-
-    `create_savepoint` keeps commit()/rollback() inside the outer transaction.
-    """
+    """ORM session joined to the rolled-back transaction (`create_savepoint`)."""
     sess = Session(bind=conn, join_transaction_mode="create_savepoint")
     try:
         yield sess
@@ -165,14 +216,10 @@ def session(conn):
 
 
 class expect_failure:
-    """Run statements expected to fail inside a SAVEPOINT.
+    """Run statements that should fail inside a SAVEPOINT.
 
-    The savepoint is rolled back on any exception, so the enclosing
-    transaction stays usable. The exception is re-raised.
-
-        with pytest.raises(IntegrityError):
-            with expect_failure(session):
-                session.add(bad); session.flush()
+    The savepoint is rolled back on any exception, so the outer test transaction
+    stays usable. The exception is re-raised.
     """
 
     def __init__(self, sess):
@@ -186,144 +233,12 @@ class expect_failure:
     def __exit__(self, exc_type, exc, tb):
         if exc_type is None:
             self.nested.commit()
-        else:
-            if self.nested.is_active:
-                self.nested.rollback()
+        elif self.nested.is_active:
+            self.nested.rollback()
         return False
 
 
 @pytest.fixture()
 def failing():
-    """Factory: `failing(session)` returns an `expect_failure` context."""
+    """Factory: `with failing(session): ...` rolls back to the savepoint on error."""
     return expect_failure
-
-
-# ---------------------------------------------------------------------------
-# Shared strategies
-# ---------------------------------------------------------------------------
-# PostgreSQL text cannot hold NUL; surrogates cannot be encoded as UTF-8.
-_PG_ALPHABET = st.characters(blacklist_categories=("Cs",), blacklist_characters="\x00")
-_WS = st.sampled_from([" ", "\t", "\n", "\r", "\u00a0", "\u2003", "\u3000"])
-_NON_BMP = st.characters(min_codepoint=0x10000, max_codepoint=0x10FFFF, blacklist_categories=("Cs",))
-
-text_with_edge_chars = st.text(st.one_of(_PG_ALPHABET, _WS, _NON_BMP), min_size=0, max_size=50)
-
-
-def text_of_length(min_len, max_len):
-    """Text whose length in code points is within [min_len, max_len]."""
-    return st.text(st.one_of(_PG_ALPHABET, _WS, _NON_BMP), min_size=min_len, max_size=max_len)
-
-
-floats_with_specials = st.floats(allow_nan=True, allow_infinity=True)
-finite_positive_floats = st.floats(
-    min_value=5e-324, max_value=1e300, allow_nan=False, allow_infinity=False
-)
-
-aware_datetimes = st.datetimes(
-    min_value=datetime(1970, 1, 2),
-    max_value=datetime(9000, 1, 1),
-    # Fixed offsets only: st.timezones() needs tzdata, absent on some hosts.
-    timezones=st.just(timezone.utc)
-    | st.builds(
-        lambda m: timezone(timedelta(minutes=m)),
-        st.integers(-12 * 60, 14 * 60),
-    ),
-)
-
-
-@st.composite
-def board_graphs(draw, max_users=4, max_columns=4, max_cards=6):
-    """Plain-data board graph; persist it with `persist_board_graph`.
-
-    Returns dict with users, board, members, columns, cards. Cross references
-    use list indexes so the graph is valid by construction.
-    """
-    n_users = draw(st.integers(1, max_users))
-    n_cols = draw(st.integers(0, max_columns))
-    users = [
-        {"id": uuid.uuid4(), "name": draw(text_of_length(1, 40)) or "u"}
-        for _ in range(n_users)
-    ]
-    owner = draw(st.integers(0, n_users - 1))
-    members = sorted(draw(st.sets(st.integers(0, n_users - 1), max_size=n_users)) | {owner})
-    columns = [
-        {
-            "id": uuid.uuid4(),
-            "title": draw(text_of_length(1, 40)),
-            "order": draw(finite_positive_floats),
-        }
-        for _ in range(n_cols)
-    ]
-    cards = []
-    if n_cols:
-        for _ in range(draw(st.integers(0, max_cards))):
-            cards.append(
-                {
-                    "id": uuid.uuid4(),
-                    "column": draw(st.integers(0, n_cols - 1)),
-                    "title": draw(text_of_length(1, 40)),
-                    "description": draw(st.none() | text_of_length(0, 100)),
-                    "order": draw(finite_positive_floats),
-                    "creator": draw(st.integers(0, n_users - 1)),
-                    "assignee": draw(st.none() | st.integers(0, n_users - 1)),
-                }
-            )
-    return {
-        "users": users,
-        "board": {
-            "id": uuid.uuid4(),
-            "name": draw(text_of_length(1, 40)),
-            "owner": owner,
-        },
-        "members": members,
-        "columns": columns,
-        "cards": cards,
-    }
-
-
-def persist_board_graph(sess, graph):
-    """Insert a `board_graphs` value and flush. Returns the board id."""
-    from app.models.board import Board, BoardMember
-    from app.models.card import Card
-    from app.models.column import BoardColumn
-    from app.models.user import User
-
-    users = graph["users"]
-    for i, u in enumerate(users):
-        sess.add(
-            User(
-                id=u["id"],
-                name=u["name"],
-                email=f"u{i}-{u['id'].hex}@example.com",
-                password_hash="x",
-            )
-        )
-    sess.flush()
-    b = graph["board"]
-    sess.add(Board(id=b["id"], name=b["name"], owner_id=users[b["owner"]]["id"]))
-    sess.flush()
-    for i in graph["members"]:
-        sess.add(
-            BoardMember(
-                board_id=b["id"],
-                user_id=users[i]["id"],
-                role="admin" if i == b["owner"] else "member",
-            )
-        )
-    for c in graph["columns"]:
-        sess.add(BoardColumn(id=c["id"], board_id=b["id"], title=c["title"], order=c["order"]))
-    sess.flush()
-    for c in graph["cards"]:
-        sess.add(
-            Card(
-                id=c["id"],
-                column_id=graph["columns"][c["column"]]["id"],
-                created_by=users[c["creator"]]["id"],
-                assignee_id=None if c["assignee"] is None else users[c["assignee"]]["id"],
-                title=c["title"],
-                description=c["description"],
-                order=c["order"],
-            )
-        )
-    sess.flush()
-    return b["id"]

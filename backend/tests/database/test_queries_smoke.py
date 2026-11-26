@@ -1,203 +1,147 @@
-"""Smoke tests for app.models.queries against real PostgreSQL 18."""
-import uuid
+"""Reference queries against the V4 schema (Requirements 6.3, 7.2 to 7.6, 9.8).
+
+The query functions read through db.session, so these tests commit their data
+to a scratch database instead of using the rolled-back session fixture.
+"""
+
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from flask_migrate import upgrade
 
 from app.extensions import db
-from app.models import (
-    ActivityLog, Board, BoardColumn, BoardMember, Card, Notification, User,
+from app.models import Notification
+from app.models import queries
+from tests.database.conftest import make_app, migrations_dir
+from tests.database.factories import (
+    new_board,
+    new_card,
+    new_column,
+    new_comment,
+    new_member,
+    new_user,
 )
-from app.models import queries as q
 
 UTC = timezone.utc
+NOW = datetime(2026, 11, 18, 12, 0, tzinfo=UTC)
 
 
 @pytest.fixture()
-def s(session, monkeypatch):
-    """Route queries' db.session to the rolled-back test session."""
-    monkeypatch.setattr(db, "session", session)
-    return session
+def qapp(scratch_url):
+    app = make_app(scratch_url)
+    with app.app_context():
+        upgrade(directory=migrations_dir())
+        yield app
 
 
-def mk_user(s, name="u"):
-    u = User(id=uuid.uuid4(), name=name, email=f"{uuid.uuid4().hex}@example.com", password_hash="x")
-    s.add(u)
-    s.flush()
-    return u
+def test_week_bounds_are_monday_to_monday_utc():
+    start, end = queries.week_bounds_utc(NOW)
+    assert start.weekday() == 0
+    assert (start.hour, start.minute, start.second) == (0, 0, 0)
+    assert end - start == timedelta(days=7)
+    assert start <= NOW < end
+    # The last second of the previous Sunday belongs to the previous week.
+    assert queries.week_bounds_utc(start - timedelta(seconds=1))[0] == start - timedelta(days=7)
 
 
-def mk_board(s, owner, name="b"):
-    b = Board(id=uuid.uuid4(), name=name, owner_id=owner.id)
-    s.add(b)
-    s.flush()
-    return b
+def test_board_reports_counts_activity_completions_and_my_tasks(qapp):
+    start, end = queries.week_bounds_utc(NOW)
+    alice = new_user(db.session, name="Alice")
+    bob = new_user(db.session, name="Bob")
+    carol = new_user(db.session, name="Carol")  # Guest: never listed
+    board = new_board(db.session, creator=alice)
+    new_member(db.session, board, alice, role="admin")
+    new_member(db.session, board, bob, role="member", added_by=alice)
+    todo = new_column(db.session, board, name="To Do", position=1.0)
+    done = new_column(db.session, board, name="Done", position=2.0, is_done=True)
 
-
-def mk_col(s, board, title="c", order=1.0):
-    c = BoardColumn(id=uuid.uuid4(), board_id=board.id, title=title, order=order)
-    s.add(c)
-    s.flush()
-    return c
-
-
-def mk_card(s, col, user, title="t", order=1.0, **kw):
-    c = Card(id=uuid.uuid4(), column_id=col.id, created_by=user.id, title=title, order=order, **kw)
-    s.add(c)
-    s.flush()
-    return c
-
-
-NOW = datetime(2024, 5, 15, 12, 0, tzinfo=UTC)  # Wednesday
-MONDAY = datetime(2024, 5, 13, tzinfo=UTC)
-
-
-def test_week_bounds_utc():
-    assert q.week_bounds_utc(NOW) == (MONDAY, MONDAY + timedelta(days=7))
-    # Sunday 23:30 at UTC-5 is Monday 04:30 UTC -> following week
-    plus = datetime(2024, 5, 19, 23, 30, tzinfo=timezone(timedelta(hours=-5)))
-    assert q.week_bounds_utc(plus)[0] == datetime(2024, 5, 20, tzinfo=UTC)
-    assert q.week_bounds_utc(MONDAY)[0] == MONDAY
-
-
-def test_card_counts_per_column(s):
-    u = mk_user(s)
-    b = mk_board(s, u)
-    c1 = mk_col(s, b, "a", 1.0)
-    c2 = mk_col(s, b, "empty", 2.0)
-    c3 = mk_col(s, b, "gone", 3.0)
+    c1 = new_card(db.session, todo, title="c1", position=1.0, creator=alice, assignee=bob)
+    c2 = new_card(db.session, todo, title="c2", position=2.0, creator=bob, assignee=alice)
+    c3 = new_card(db.session, done, title="c3 deleted", creator=alice)
+    c4 = new_card(db.session, done, title="c4 at end", creator=alice)
+    c5 = new_card(db.session, done, title="c5 in week", creator=alice)
+    c2.completed_at = start
+    c3.completed_at = start + timedelta(days=1)
     c3.soft_delete()
-    mk_card(s, c1, u, "x", 1.0)
-    mk_card(s, c1, u, "y", 2.0)
-    d = mk_card(s, c1, u, "deleted", 3.0)
-    d.soft_delete()
-    mk_card(s, c3, u)
-    s.flush()
-    rows = q.card_counts_per_column(b.id)
-    assert [(r.title, r.card_count) for r in rows] == [("a", 2), ("empty", 0)]
+    c4.completed_at = end
+    c5.completed_at = start + timedelta(days=2)
+    db.session.flush()
+    new_comment(db.session, c1, content="bob here", creator=bob)
+    new_comment(db.session, c1, content="alice here", creator=alice)
+    new_comment(db.session, c3, content="on a deleted card", creator=bob)
+    db.session.commit()
+
+    counts = {row.name: row.card_count for row in queries.card_counts_per_column(board.id)}
+    assert counts == {"To Do": 2, "Done": 2}
+
+    assert queries.completed_this_week(board.id, now=NOW) == 2
+
+    activity = [
+        (row.name, row.cards_created, row.comments_added, row.cards_assigned)
+        for row in queries.member_activity(board.id)
+    ]
+    assert activity == [("Alice", 3, 1, 1), ("Bob", 1, 1, 1)]
+
+    my_board_ids = [row[0] for row in queries.my_tasks(alice.id)]
+    assert my_board_ids == [board.id]
+    assert [row[2].id for row in queries.my_tasks(alice.id)] == [c2.id]
+
+    loaded_board, columns, cards = queries.load_board(board.id)
+    assert loaded_board.id == board.id
+    assert [c.name for c in columns] == ["To Do", "Done"]
+    assert sorted(c.title for c in cards) == ["c1", "c2", "c4 at end", "c5 in week"]
 
 
-def test_completed_this_week_boundaries(s):
-    u = mk_user(s)
-    b = mk_board(s, u)
-    c = mk_col(s, b)
-    mk_card(s, c, u, "before", 1.0, completed_at=MONDAY - timedelta(microseconds=1))
-    mk_card(s, c, u, "start", 2.0, completed_at=MONDAY)
-    mk_card(s, c, u, "mid", 3.0, completed_at=NOW)
-    mk_card(s, c, u, "end", 4.0, completed_at=MONDAY + timedelta(days=7))
-    mk_card(s, c, u, "none", 5.0)
-    dl = mk_card(s, c, u, "del", 6.0, completed_at=NOW)
-    dl.soft_delete()
-    s.flush()
-    assert q.completed_this_week(b.id, NOW) == 2
+def test_search_is_case_insensitive_and_treats_wildcards_literally(qapp):
+    user = new_user(db.session)
+    board = new_board(db.session, creator=user)
+    column = new_column(db.session, board)
+    new_card(db.session, column, title="Alpha launch", creator=user)
+    new_card(db.session, column, title="Other", creator=user)
+    described = new_card(db.session, column, title="Plain", creator=user)
+    described.description = "mentions ALPHA in the body"
+    new_card(db.session, column, title="100% done", creator=user)
+    new_card(db.session, column, title="snake_case note", creator=user)
+    deleted = new_card(db.session, column, title="alpha deleted", creator=user)
+    deleted.soft_delete()
+    db.session.commit()
+
+    titles = lambda term: sorted(c.title for c in queries.search_cards(term))  # noqa: E731
+    assert titles("alpha") == ["Alpha launch", "Plain"]
+    assert titles("100%") == ["100% done"]
+    assert titles("%") == ["100% done"]
+    assert titles("_case") == ["snake_case note"]
+    with pytest.raises(ValueError):
+        queries.search_cards("")
+    with pytest.raises(ValueError):
+        queries.search_cards("x" * 201)
 
 
-def test_member_activity(s):
-    owner, idle, former = mk_user(s, "owner"), mk_user(s, "idle"), mk_user(s, "former")
-    b = mk_board(s, owner)
-    other = mk_board(s, owner, "other")
-    s.add_all([BoardMember(board_id=b.id, user_id=owner.id, role="admin"),
-               BoardMember(board_id=b.id, user_id=idle.id, role="member")])
-    s.add_all([ActivityLog(board_id=b.id, user_id=owner.id, action="a"),
-               ActivityLog(board_id=b.id, user_id=owner.id, action="b"),
-               ActivityLog(board_id=b.id, user_id=former.id, action="c"),
-               ActivityLog(board_id=other.id, user_id=idle.id, action="d")])
-    s.flush()
-    got = {r.name: r.actions for r in q.member_activity(b.id)}
-    assert got == {"owner": 2, "idle": 0, "former": 1}
+def test_notification_page_is_newest_first_and_sliced(qapp):
+    user = new_user(db.session)
+    base = datetime(2026, 11, 1, tzinfo=UTC)
+    for day in range(5):
+        db.session.add(Notification(
+            user_id=user.id,
+            type="comment_added",
+            message=f"message {day}",
+            created_at=base + timedelta(days=day),
+        ))
+    db.session.commit()
+
+    page = queries.notifications_page(user.id, limit=2, offset=1)
+    assert [n.message for n in page] == ["message 3", "message 2"]
+    assert len(queries.notifications_page(user.id, limit=100)) == 5
+    with pytest.raises(ValueError):
+        queries.notifications_page(user.id, limit=0)
 
 
-def test_my_tasks(s):
-    me, other = mk_user(s, "me"), mk_user(s, "other")
-    bz = mk_board(s, me, "Zeta")
-    ba = mk_board(s, me, "Alpha")
-    bd = mk_board(s, me, "Deleted")
-    bd.soft_delete()
-    cz, ca, cd = mk_col(s, bz), mk_col(s, ba), mk_col(s, bd)
-    mk_card(s, cz, me, "z1", assignee_id=me.id)
-    mk_card(s, ca, me, "a1", assignee_id=me.id)
-    mk_card(s, ca, me, "not mine", 2.0, assignee_id=other.id)
-    mk_card(s, cd, me, "hidden", assignee_id=me.id)
-    gone = mk_card(s, ca, me, "gone", 3.0, assignee_id=me.id)
-    gone.soft_delete()
-    s.flush()
-    rows = q.my_tasks(me.id)
-    assert [(r[1], r[2].title) for r in rows] == [("Alpha", "a1"), ("Zeta", "z1")]
+def test_load_board_handles_a_board_without_columns(qapp):
+    user = new_user(db.session)
+    board = new_board(db.session, creator=user)
+    db.session.commit()
+    loaded, columns, cards = queries.load_board(board.id)
+    assert loaded.id == board.id
+    assert columns == []
+    assert cards == []
 
-
-def test_search_cards(s):
-    u = mk_user(s)
-    b = mk_board(s, u)
-    c = mk_col(s, b)
-    hit = mk_card(s, c, u, "Fix Login", 1.0)
-    desc = mk_card(s, c, u, "other", 2.0, description="about LOGIN page")
-    pct = mk_card(s, c, u, "100% done", 3.0)
-    mk_card(s, c, u, "1000 done", 4.0)
-    und = mk_card(s, c, u, "a_b", 5.0)
-    mk_card(s, c, u, "axb", 6.0)
-    dc = mk_card(s, c, u, "login deleted card", 7.0)
-    dc.soft_delete()
-    c2 = mk_col(s, b, "gone", 2.0)
-    c2.soft_delete()
-    mk_card(s, c2, u, "login in deleted column")
-    b2 = mk_board(s, u, "b2")
-    b2.soft_delete()
-    mk_card(s, mk_col(s, b2), u, "login in deleted board")
-    s.flush()
-    assert {x.id for x in q.search_cards("login")} == {hit.id, desc.id}
-    assert [x.id for x in q.search_cards("%")] == [pct.id]
-    assert [x.id for x in q.search_cards("_")] == [und.id]
-    # membership filter
-    assert q.search_cards("login", user_id=u.id) == []
-    s.add(BoardMember(board_id=b.id, user_id=u.id, role="admin"))
-    s.flush()
-    assert len(q.search_cards("login", user_id=u.id)) == 2
-    for bad in ("", "x" * 201):
-        with pytest.raises(ValueError):
-            q.search_cards(bad)
-    assert q.search_cards("x" * 200) == []
-
-
-def test_notifications_page(s):
-    u = mk_user(s)
-    b = mk_board(s, u)
-    for i in range(5):
-        s.add(Notification(user_id=u.id, board_id=b.id, type="t", message=f"m{i}",
-                           created_at=NOW + timedelta(minutes=i)))
-    other = mk_user(s)
-    s.add(Notification(user_id=other.id, board_id=b.id, type="t", message="x", created_at=NOW))
-    s.flush()
-    assert [n.message for n in q.notifications_page(u.id, 3)] == ["m4", "m3", "m2"]
-    assert [n.message for n in q.notifications_page(u.id, 3, 3)] == ["m1", "m0"]
-    for kw in ({"limit": 0}, {"limit": 101}, {"offset": -1}, {"offset": 1_000_001}):
-        with pytest.raises(ValueError):
-            q.notifications_page(u.id, **kw)
-    q.notifications_page(u.id, 100, 1_000_000)
-
-
-def test_load_board(s):
-    u = mk_user(s)
-    b = mk_board(s, u)
-    c1, c2 = mk_col(s, b, "c1", 1.0), mk_col(s, b, "c2", 2.0)
-    c3 = mk_col(s, b, "c3", 3.0)
-    c3.soft_delete()
-    k2 = mk_card(s, c1, u, "k2", 2.0)
-    k1 = mk_card(s, c1, u, "k1", 1.0)
-    mk_card(s, c1, u, "dead", 3.0).soft_delete()
-    mk_card(s, c3, u, "in dead col")
-    s.flush()
-    s.expire_all()
-    from sqlalchemy import event
-    stmts = []
-    eng = s.get_bind()
-    def on_exec(conn, cursor, statement, *a):
-        stmts.append(statement)
-    event.listen(eng, "before_cursor_execute", on_exec)
-    try:
-        board, cols, cards = q.load_board(b.id)
-    finally:
-        event.remove(eng, "before_cursor_execute", on_exec)
-    assert board.id == b.id
-    assert [c.title for c in cols] == ["c1", "c2"]
-    assert [c.id for c in cards] == [k1.id, k2.id]
-    assert len(stmts) == 3
