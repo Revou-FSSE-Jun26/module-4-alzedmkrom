@@ -1,31 +1,39 @@
-export const SESSION_COOKIE = 'revotask_token';
+// Pure session helpers, safe to import from Server Components, Server Actions,
+// the request proxy and Client Components. Cookie writes happen only in
+// app/actions/session.ts, as httpOnly cookies (FE-AUTH-01).
+
+export const SESSION_COOKIE = 'revotask_token'
+
+/** Request header the proxy sets so Server Components know the current path. */
+export const PATHNAME_HEADER = 'x-revotask-path'
 
 /**
- * Builds the Set-Cookie style string for the session cookie.
- * Pure: no browser globals, so it is safe in Proxy and Client Components.
- * The cookie is intentionally not HttpOnly, because browser code writes it.
+ * Returns `next` when it is a same-origin relative path that starts with a
+ * single `/` (FE-SEC-03). Anything else, including `//host` and `/\host`,
+ * falls back to `/`.
  */
-export function buildSessionCookie(token: string, maxAgeSeconds: number, secure: boolean): string {
-  const attributes = [
-    `${SESSION_COOKIE}=${encodeURIComponent(token)}`,
-    'Path=/',
-    'SameSite=Lax',
-    `Max-Age=${maxAgeSeconds}`,
-  ];
-  if (secure) {
-    attributes.push('Secure');
+export function safeNextPath(next: string | null | undefined): string {
+  if (typeof next !== 'string' || next.length === 0) {
+    return '/'
   }
-  return attributes.join('; ');
+  if (!next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) {
+    return '/'
+  }
+  if (next.includes('\\') || /[\u0000-\u001f]/.test(next)) {
+    return '/'
+  }
+  return next
 }
 
-/** Stores the session token in `document.cookie`. Browser only. */
-export function writeSessionCookie(token: string, expiresIn: number): void {
-  const secure = location.protocol === 'https:';
-  document.cookie = buildSessionCookie(token, expiresIn, secure);
-}
-
-/** Removes the session cookie by expiring it immediately. Browser only. */
-export function clearSessionCookie(): void {
-  const secure = location.protocol === 'https:';
-  document.cookie = buildSessionCookie('', 0, secure);
+/** Builds `/login?...` with URLSearchParams (FE-SEC-03). */
+export function loginPath(options: { next?: string | null; sessionExpired?: boolean } = {}): string {
+  const params = new URLSearchParams()
+  if (options.sessionExpired === true) {
+    params.set('reason', 'session-expired')
+  }
+  if (options.next !== undefined && options.next !== null) {
+    params.set('next', safeNextPath(options.next))
+  }
+  const query = params.toString()
+  return query === '' ? '/login' : `/login?${query}`
 }

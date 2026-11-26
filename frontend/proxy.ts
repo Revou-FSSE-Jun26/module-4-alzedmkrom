@@ -1,25 +1,32 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { SESSION_COOKIE } from '@/lib/session'
+import { loginPath, PATHNAME_HEADER, SESSION_COOKIE } from '@/lib/session'
 
-// Paths that never redirect, so a logged-out user can reach the login and registration forms.
-const PUBLIC_PATHS = new Set(['/login', '/register'])
+// Pages that need a session (FE-AUTH-05). Anonymous visitors are sent to login.
+// Every other path, including the public board pages, stays open.
+const PROTECTED_PATHS = ['/my-tasks', '/profile']
+
+function isProtected(pathname: string): boolean {
+  return PROTECTED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
+}
 
 /**
- * Route_Guard. Redirects a request to `/login` when it targets a Protected_Path without a
- * non-empty Session_Cookie. The token is not validated here: an invalid token is rejected
- * by the API and handled by the Server Components (lib/serverApi.ts).
+ * Route guard. Redirects a request for a protected path without a session cookie
+ * to `/login?next=...`. The token is not validated here: an invalid token is
+ * rejected by the API and handled by the Server Components (lib/serverApi.ts).
+ * Every request gets its path in a header so Server Components can build `next`.
  */
 export function proxy(request: NextRequest) {
-  if (PUBLIC_PATHS.has(request.nextUrl.pathname)) {
-    return NextResponse.next()
-  }
-
+  const pathname = request.nextUrl.pathname
+  const pathAndQuery = `${pathname}${request.nextUrl.search}`
   const token = request.cookies.get(SESSION_COOKIE)?.value
-  if (typeof token === 'string' && token.length > 0) {
-    return NextResponse.next()
+
+  if (isProtected(pathname) && (token === undefined || token.length === 0)) {
+    return NextResponse.redirect(new URL(loginPath({ next: pathAndQuery }), request.url))
   }
 
-  return NextResponse.redirect(new URL('/login', request.url))
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set(PATHNAME_HEADER, pathAndQuery)
+  return NextResponse.next({ request: { headers: requestHeaders } })
 }
 
 export const config = {

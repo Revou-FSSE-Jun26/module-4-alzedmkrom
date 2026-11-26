@@ -1,69 +1,80 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { clearSessionCookie, writeSessionCookie } from "@/lib/session";
-import type { User } from "@/lib/types";
+import { logoutAction } from "@/app/actions/session";
+import { loginPath } from "@/lib/session";
+import { showSessionExpiredToast } from "@/lib/toast";
+import type { User } from "@/types/api";
 
-export interface AuthContextValue {
+// The session the root layout reads from the httpOnly cookie and `GET /api/users/me` (FE-AUTH-02).
+export interface AuthSession {
   token: string | null;
   user: User | null;
-  login(token: string, expiresIn: number, user: User): void;
-  logout(): void;
-  clearSession(): void;
+}
+
+export interface AuthContextValue extends AuthSession {
+  /** Stores the profile after a successful save. */
   updateUser(user: User): void;
+  /** Ends the session on the client only. The cookie is not touched. */
+  clearSession(): void;
+  /** Deletes the cookie and sends the user to /login (FE-AUTH-03). */
+  logout(): Promise<void>;
+  /** Ends an expired session, shows one toast, and sends the user to /login?next= (FE-AUTH-04). */
+  expireSession(): Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export interface AuthProviderProps {
-  initialToken: string | null;
-  initialUser: User | null;
+  session: AuthSession;
   children: ReactNode;
 }
 
-export function AuthProvider({
-  initialToken,
-  initialUser,
-  children,
-}: AuthProviderProps) {
+export function AuthProvider({ session, children }: AuthProviderProps) {
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(initialToken);
-  const [user, setUser] = useState<User | null>(initialUser);
+  // Client-side changes (profile save, logout) apply to the server session they were made
+  // against. When the layout re-renders with a new session object, the change is dropped.
+  const [local, setLocal] = useState<{ base: AuthSession; next: AuthSession } | null>(null);
+  const current = local !== null && local.base === session ? local.next : session;
 
-  const login = useCallback((nextToken: string, expiresIn: number, nextUser: User) => {
-    writeSessionCookie(nextToken, expiresIn);
-    setToken(nextToken);
-    setUser(nextUser);
-  }, []);
+  const updateUser = useCallback(
+    (user: User) => {
+      setLocal({ base: session, next: { token: current.token, user } });
+    },
+    [session, current.token],
+  );
 
-  // F4: clears state and the cookie, with no navigation.
   const clearSession = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    clearSessionCookie();
-  }, []);
+    setLocal({ base: session, next: { token: null, user: null } });
+  }, [session]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     clearSession();
+    await logoutAction();
     router.replace("/login");
     router.refresh();
   }, [clearSession, router]);
 
-  const updateUser = useCallback((nextUser: User) => {
-    setUser(nextUser);
-  }, []);
+  const expireSession = useCallback(async () => {
+    clearSession();
+    await logoutAction();
+    showSessionExpiredToast();
+    const next = `${window.location.pathname}${window.location.search}`;
+    router.replace(loginPath({ next, sessionExpired: true }));
+    router.refresh();
+  }, [clearSession, router]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ token, user, login, logout, clearSession, updateUser }),
-    [token, user, login, logout, clearSession, updateUser],
+    () => ({
+      token: current.token,
+      user: current.user,
+      updateUser,
+      clearSession,
+      logout,
+      expireSession,
+    }),
+    [current.token, current.user, updateUser, clearSession, logout, expireSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

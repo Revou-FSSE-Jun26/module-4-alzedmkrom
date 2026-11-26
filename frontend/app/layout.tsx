@@ -2,7 +2,7 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Toaster } from "react-hot-toast";
-import { AppShell } from "@/components/AppShell";
+import { AppShell } from "@/components/layout/AppShell";
 import { AuthProvider } from "@/context/AuthContext";
 import { getServerSession } from "@/lib/serverSession";
 
@@ -23,7 +23,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <AuthProvider initialToken={token} initialUser={user}>
+        <AuthProvider session={{ token, user }}>
           <AppShell>{children}</AppShell>
           <Toaster />
         </AuthProvider>

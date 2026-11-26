@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 import { apiRequest } from '@/lib/apiClient'
 import { ApiError } from '@/lib/errors'
 import { SESSION_COOKIE } from '@/lib/session'
-import type { User } from '@/lib/types'
+import type { User } from '@/types/api'
 
 /**
  * Reads the session token from the request cookies.
