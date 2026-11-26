@@ -12,7 +12,7 @@ Scope of this revision: the database steering (`database.md`) and the backend st
 | Steering files reviewed against | `database.md` v4, `backend.md` v8 (both changelogs in `docs/`). `frontend.md` (v9) is not yet in `.kiro/steering/`. The 19 scores were recorded against the earlier wording (database v3, backend v7). The v4 and v8 changes clarified rules that the code already followed, so the scores still stand. |
 | Steering location in repo | `.kiro/steering/` |
 | Baseline code (generated without steering) | Tag `baseline-no-steering` = commit `e3fbedd` (on `origin/main`), the last commit before any steering file was added. Checks were scored on this code. |
-| Code after steering + refinement | `main`, commits `e1abc90` to `1935b07`. Database layer: `e1abc90` to `86143d1`. Backend: `260712f` to `1935b07`. |
+| Code after steering + refinement | `main`, commits `e1abc90` to `a7a234a`. Database layer: `e1abc90` to `86143d1`. Backend: `260712f` to `1935b07`, plus notification types in `a7a234a`. |
 | Number of violations reported | 7 (database V-01 to V-03, backend V-04 to V-07) |
 
 **Original generation prompt(s):**
@@ -390,7 +390,7 @@ Database and backend checks are scored. Frontend is not.
 - BE-STR-02 failed on the first regeneration, even though the rule is simple. The sub-agent left one `db.session` call and one role comparison in `boards/routes.py`. I fixed it by hand in `1935b07`. The "after" result therefore includes one manual edit.
 - The regeneration deleted the 17 local `activity_logs` rows when `0002` ran (the table was removed by the steering), and the downgrade cannot restore them.
 - Migration `0002` mixes schema and data changes in one revision, which DB-MIG-03 forbids. I did that because the filename was requested. See section 4.
-- The backend now has 6 notification types that the database CHECK does not allow. The regenerated code does not emit them, so BE-NTF-01 is only partly met. See section 4.
+- Notification types: the database CHECK and the code now cover all ten BE-NTF-03 types (migration `0003`, commit `a7a234a`). Only the card-delete trigger has a test so far (see section 4).
 
 **Limits of this comparison:** single run per condition. The "after" code was produced by a sub-agent, with one manual fix. The two runs did not use identical prompts. The frontend is not scored. Backend and database checks depend on the rules being explicit in the steering, so a steering file with fewer tables would score differently.
 
@@ -398,7 +398,7 @@ Database and backend checks are scored. Frontend is not.
 
 ## 4. Guideline feedback
 
-Changes below were approved and applied to the steering files: `database.md` v4 and `backend.md` v8. Each one is logged in `docs/database-changelog.md` or `docs/backend-changelog.md`. Two items remain open in the code, not in the steering files: the six notification types (BE-NTF-03 vs the database CHECK), and migration `0002` (DB-MIG-03, a known exception).
+Changes below were approved and applied to the steering files: `database.md` v4 and `backend.md` v8. Each one is logged in `docs/database-changelog.md` or `docs/backend-changelog.md`. One item remains as a known exception, not a steering gap: migration `0002` mixes schema and data changes (DB-MIG-03).
 
 | Guideline ID | Problem found | Change made | Changelog entry |
 |---|---|---|---|
@@ -407,7 +407,7 @@ Changes below were approved and applied to the steering files: `database.md` v4 
 | DB-MIG-03 | Migration `0002` mixes schema and data in one revision, because the filename was requested. The rule forbids this. | Proposed: allow one revision when a conversion needs both, or split the data steps. | Applied (database.md v4) |
 | DB-OWN-02 | The steering says `created_by` is never updated, but names no enforcement point. | Proposed: name the enforcement point (backend service or a trigger). No trigger was added (OD-9). | Applied (database.md v4) |
 | BE-STR-01 | "Exactly eight domains" conflicts with `GET /api/health`, which the course rubric requires. | Proposed: allow named app-level routes (such as `/api/health`) outside the domain list. Applied in the code: health is an app-level route. | Applied (database.md v4) |
-| BE-NTF-01 / BE-NTF-03 vs DB-SCH-01 | Six notification types in `backend.md` (`card_created`, `card_deleted`, `column_deleted`, `board_deleted`, `member_role_changed`, `member_removed`) are not in the database CHECK list (`card_assigned`, `card_moved`, `comment_added`, `member_added`). The two steering files disagree. | Proposed: make DB-SCH-01 reference the BE-NTF-03 list, or shrink the BE-NTF-03 list. The code does not emit the six missing types, so BE-NTF-01 is only partly met. | Applied (database.md v4) |
+| BE-NTF-01 / BE-NTF-03 vs DB-SCH-01 | Six notification types in `backend.md` (`card_created`, `card_deleted`, `column_deleted`, `board_deleted`, `member_role_changed`, `member_removed`) are not in the database CHECK list (`card_assigned`, `card_moved`, `comment_added`, `member_added`). The two steering files disagree. | Proposed: make DB-SCH-01 reference the BE-NTF-03 list, or shrink the BE-NTF-03 list. Resolved in code: migration `0003` extends the CHECK, and the six triggers emit the types (commit `a7a234a`). | Applied (database.md v4) |
 | BE-AZ-03 vs BE-VAL-01 | BE-AZ-03 puts authorization (403) before validation (422). BE-VAL-01 says every input is validated before a service runs. The code validates inside the service after authorization, so a Member with an invalid body gets 403. | Proposed: state that authorization runs before validation, and make BE-VAL-01 say so. Applied in the code. | Applied (database.md v4) |
 | BE-ERR-02 vs BE-AZ-07 | The status table lists `CONFLICT` for duplicates, and the examples use `EMAIL_TAKEN` and `ALREADY_MEMBER`. The table does not list those codes. | Proposed: add the codes to the table. The code uses `EMAIL_TAKEN` and `ALREADY_MEMBER`. | Applied (database.md v4) |
 | BE-ERR-02 | The table has no 405 code. The code returns `METHOD_NOT_ALLOWED` for a wrong HTTP method. | Proposed: add 405 `METHOD_NOT_ALLOWED`. | Applied (database.md v4) |
