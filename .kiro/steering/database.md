@@ -51,7 +51,7 @@ The section headings below named **Board membership**, **Board visibility**, **O
 ## 2. Tables
 
 ### DB-SCH-01 Tables and columns (single source of truth)
-- **Rule:** The schema is exactly the following. Do not add tables or columns without updating this section first. The `position` columns are exposed in the models and the API as `order` (see DB-ORD-01). `created_at` / `updated_at` follow DB-CNV-04 where listed.
+- **Rule:** Every text column in the tables below also has `CHECK (char_length(<column>) >= 1)`, so an empty string is rejected even though the table gives only a maximum length. The schema is exactly the following. Do not add tables or columns without updating this section first. The `position` columns are exposed in the models and the API as `order` (see DB-ORD-01). `created_at` / `updated_at` follow DB-CNV-04 where listed.
 
 **users**
 
@@ -94,7 +94,7 @@ Primary key is `(board_id, user_id)`.
 | `id` | UUID | PK |
 | `board_id` | UUID | NOT NULL, FK `boards`, ON DELETE CASCADE |
 | `name` | VARCHAR(100) | NOT NULL |
-| `position` | DOUBLE PRECISION | NOT NULL, CHECK `position > 0` |
+| `position` | DOUBLE PRECISION | NOT NULL, CHECK `position > 0 AND position < 'Infinity'` |
 | `is_done` | BOOLEAN | NOT NULL, default `false` |
 | `created_by` | UUID | NULL, FK `users`, ON DELETE SET NULL |
 | `created_at`, `updated_at` | TIMESTAMPTZ | NOT NULL |
@@ -112,7 +112,7 @@ Also `UNIQUE (id, board_id)`, needed by the `cards` composite foreign key.
 | `description` | TEXT | NULL, CHECK `char_length(description) <= 5000` |
 | `assignee_id` | UUID | NULL, FK `users`, ON DELETE SET NULL |
 | `due_date` | DATE | NULL |
-| `position` | DOUBLE PRECISION | NOT NULL, CHECK `position > 0` |
+| `position` | DOUBLE PRECISION | NOT NULL, CHECK `position > 0 AND position < 'Infinity'` |
 | `completed_at` | TIMESTAMPTZ | NULL |
 | `deleted_at` | TIMESTAMPTZ | NULL (set when the card is soft-deleted) |
 | `created_by` | UUID | NULL, FK `users`, ON DELETE SET NULL |
@@ -136,7 +136,7 @@ Composite FK `(column_id, board_id)` references `columns (id, board_id)`, ON DEL
 |---|---|---|
 | `id` | UUID | PK |
 | `user_id` | UUID | NOT NULL, FK `users`, ON DELETE CASCADE (the recipient) |
-| `type` | VARCHAR(30) | NOT NULL, CHECK in the `type` values defined in `backend.md` BE-NTF-03 |
+| `type` | VARCHAR(30) | NOT NULL, CHECK in the ten `type` values listed in `backend.md` BE-NTF-03 |
 | `message` | VARCHAR(500) | NOT NULL |
 | `board_id` | UUID | NULL, **no foreign key** (see Notification retention) |
 | `is_read` | BOOLEAN | NOT NULL, default `false` |
@@ -188,7 +188,7 @@ Composite FK `(column_id, board_id)` references `columns (id, board_id)`, ON DEL
 - **RevoTask example:** if a user account is removed, their cards stay on the board with `created_by = NULL`, and their assigned cards become unassigned.
 
 ### DB-OWN-02 Ownership is set once
-- **Rule:** `created_by` is set at insert time from the authenticated user and is never updated afterwards. There is no API field that writes it.
+- **Rule:** `created_by` is set at insert time from the authenticated user and is never updated afterwards. There is no API field that writes it. The backend service layer enforces this (see `backend.md` BE-AZ-02 and BE-VAL-02); the database has no trigger for it.
 - **Rationale:** If ownership could change, the "delete only your own work" rule could be bypassed.
 - **RevoTask example:** `PATCH /api/cards/<id>` cannot change who created the card.
 
@@ -229,7 +229,7 @@ Deleting a board therefore removes its memberships, columns, cards, and comments
 ## 7. Ordering columns
 
 ### DB-ORD-01 Float position columns
-- **Rule:** `columns.position` and `cards.position` are `DOUBLE PRECISION NOT NULL` with `CHECK (position > 0)`. In the models, declare them as `order = db.Column("position", db.Float(53), nullable=False)`: the Python attribute and the API field are `order`, while the database column is named `position` because `order` is a reserved SQL word. A precision of 53 bits is stored as double precision. Never use `db.Integer`, `db.Numeric`, or a single-precision type. Ordering constants and formulas live in `backend.md` BE-ORD-01, not here.
+- **Rule:** `columns.position` and `cards.position` are `DOUBLE PRECISION NOT NULL` with `CHECK (position > 0 AND position < 'Infinity')`. The upper bound rejects `NaN` and `Infinity`, which PostgreSQL would otherwise accept (`NaN` sorts above every number). In the models, declare them as `order = db.Column("position", db.Float(53), nullable=False)`: the Python attribute and the API field are `order`, while the database column is named `position` because `order` is a reserved SQL word. A precision of 53 bits is stored as double precision. Never use `db.Integer`, `db.Numeric`, or a single-precision type. Ordering constants and formulas live in `backend.md` BE-ORD-01, not here.
 - **Rationale:** Double precision gives enough room for midpoint insertion, and the CHECK matches the positive-float validation on `CardPositionSchema`.
 - **RevoTask example:** an `INSERT` with `position = 0` fails on `ck_cards_position`.
 

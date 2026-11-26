@@ -49,7 +49,7 @@ Deviations from the literal endpoint list (keep, and mention in the README or sp
 ## 1. Project structure
 
 ### BE-STR-01 One blueprint per domain
-- **Rule:** Each domain lives in `app/blueprints/<name>/` with exactly `__init__.py`, `routes.py`, `service.py`, `schema.py`. Domains (exactly these eight): `auth`, `boards`, `columns`, `cards`, `comments`, `notifications`, `analytics`, `users`. Board member management (BE-AZ-07) lives in `boards`. Blueprints are registered only in `app/__init__.py` (app factory). `GET /api/users/me` lives in `users`; `GET /api/cards?assignee=me` lives in `cards`.
+- **Rule:** Each domain lives in `app/blueprints/<name>/` with exactly `__init__.py`, `routes.py`, `service.py`, `schema.py`. A named app-level route (currently `GET /api/health`) is registered in the app factory `app/__init__.py` and is not a blueprint. Domains (exactly these eight): `auth`, `boards`, `columns`, `cards`, `comments`, `notifications`, `analytics`, `users`. Board member management (BE-AZ-07) lives in `boards`. Blueprints are registered only in `app/__init__.py` (app factory). `GET /api/users/me` lives in `users`; `GET /api/cards?assignee=me` lives in `cards`.
 - **Rationale:** A fixed layout lets a reviewer find any behavior in one place and lets AI output be checked against a known shape.
 - **RevoTask example:** `POST /api/boards/<id>/columns` is routed in `columns/routes.py`, validated in `columns/schema.py`, and implemented in `columns/service.py`, even though the URL starts with `/boards`.
 
@@ -68,7 +68,7 @@ Deviations from the literal endpoint list (keep, and mention in the README or sp
 ## 2. Validation (Marshmallow)
 
 ### BE-VAL-01 Every input goes through a schema
-- **Rule:** Every JSON body and query string is validated by a Marshmallow schema before reaching a service. Services never read `request` directly. Path IDs use Flask's `<uuid:...>` converter, so a malformed ID returns 404 `NOT_FOUND` (BE-ERR-05).
+- **Rule:** Every JSON body and query string is validated by a Marshmallow schema inside the service, after the authorization checks of BE-AZ-03 (authentication, visibility, permission, then validation). Services never read `request` directly. Services never read `request` directly. Path IDs use Flask's `<uuid:...>` converter, so a malformed ID returns 404 `NOT_FOUND` (BE-ERR-05).
 - **Rationale:** Validation in one layer guarantees services receive clean, typed data.
 - **RevoTask example:** `GET /api/notifications` validates `page` and `per_page` with `PaginationQuerySchema`, not `request.args.get("page")` inside the service.
 
@@ -134,7 +134,8 @@ This section is the single source of truth. `frontend.md` only references it.
 | 401 | `UNAUTHENTICATED` | No token on a protected or write route; invalid or expired token; wrong login credentials |
 | 403 | `FORBIDDEN` | The user can see the board but their board role or ownership is insufficient |
 | 404 | `NOT_FOUND` | Resource missing, malformed UUID in the path, or the board is private and the user is not a member |
-| 409 | `CONFLICT` | Duplicate email, already a member, `LAST_ADMIN`, or a delete blocked by another member's cards |
+| 405 | `METHOD_NOT_ALLOWED` | Path exists but the HTTP method is not allowed on it |
+| 409 | `EMAIL_TAKEN`, `ALREADY_MEMBER`, `LAST_ADMIN`, `COLUMN_HAS_FOREIGN_WORK`, or `CONFLICT` | Duplicate email, already a member, last Admin, or a column delete blocked by another member's cards. `CONFLICT` is the generic code for other conflicts |
 | 422 | `VALIDATION_ERROR` | Schema validation failed |
 | 500 | `INTERNAL_ERROR` | Unhandled error (generic message only) |
 

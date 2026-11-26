@@ -1,12 +1,36 @@
 # database.md Changelog
 
-Newest first. The current file is v3, produced on 2026-11-14. Each change is logged as it is made, so entries are accurate summaries, though earlier file versions are not kept for download.
+Newest first. The current file is v4 (v4 produced on 2026-11-21; v1 to v3 on 2026-11-14). Each change is logged as it is made, so entries are accurate summaries, though earlier file versions are not kept for download.
 
 Keep this file outside `.kiro/steering/` (for example `docs/`) so Kiro does not load it as context.
 
 ---
 
-## v3 (current): Rubric alignment and soft-deleted cards
+## v4 (current): Feedback from the database and backend scoring
+
+Applied after the violation report (`docs/violation_report.md` section 4). Each change is listed with its reason.
+
+**Changed**
+- **DB-ORD-01 and DB-SCH-01 (position CHECK):** the position CHECK now has an upper bound, `position > 0 AND position < 'Infinity'`. Reason: PostgreSQL accepts `NaN` as a number above all others, so `position > 0` alone lets `NaN` through. The code already enforced this.
+- **DB-SCH-01 (empty strings):** every text column in the tables also has `CHECK (char_length(<column>) >= 1)`. Reason: a maximum length alone accepts empty strings. The code already enforced this.
+- **DB-SCH-01 (`notifications.type`):** the CHECK refers to the ten `type` values listed in `backend.md` BE-NTF-03. Reason: the two steering files disagreed. The database CHECK in the code still has only four values, so six notification types cannot be stored. That is a code gap, not a steering gap, and it is still open.
+- **DB-OWN-02 (`created_by`):** names the enforcement point (the backend service layer, `backend.md` BE-AZ-02 and BE-VAL-02). Reason: the rule named no enforcer. No trigger was added.
+
+**Not changed (decided)**
+- **DB-MIG-03 (no mixed schema and data migrations):** kept. Migration `0002_v4_schema` mixes both, because the filename was requested and the migration has already run locally. Recorded as a known exception in the violation report.
+
+**Related changes in other files**
+- `backend.md` v8: BE-STR-01 (named app-level routes), BE-VAL-01 (validation runs after BE-AZ-03 checks), BE-ERR-02 (405 and specific 409 codes).
+- `docs/violation_report.md` section 4: the proposals listed there are now applied.
+
+**Impact**
+- Requirements: none (database requirements unchanged).
+- Design components: none.
+- Implementation: the position CHECK in the code already matches. The notification CHECK still needs a migration that adds the six missing types, and the code must emit them. Neither is done.
+
+---
+
+## v3: Rubric alignment and soft-deleted cards
 
 **Added**
 - `cards.deleted_at` (`TIMESTAMPTZ NULL`) in the cards table.

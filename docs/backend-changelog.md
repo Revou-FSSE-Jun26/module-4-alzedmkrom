@@ -1,12 +1,31 @@
 # backend.md Changelog
 
-Newest first. Versions v1 to v4 were rewritten over and cannot be downloaded; their entries are reconstructed from the conversation and summarize changes rather than showing exact diffs. All versions were produced on 2026-11-14. The current file is v7.
+Newest first. Versions v1 to v4 were rewritten over and cannot be downloaded; their entries are reconstructed from the conversation and summarize changes rather than showing exact diffs. All versions were produced on 2026-11-14. The current file is v8 (v8 produced on 2026-11-21; v1 to v7 on 2026-11-14).
 
 Keep this file outside `.kiro/steering/` (for example `docs/`) so Kiro does not load it as context.
 
 ---
 
-## v7 (current): Rubric alignment and soft-deleted cards
+## v8 (current): Feedback from the backend scoring
+
+Applied after the violation report (`docs/violation_report.md` section 4).
+
+**Changed**
+- **BE-STR-01 (domains):** a named app-level route (currently `GET /api/health`) is registered in `app/__init__.py` and is not a blueprint. Reason: the course rubric requires the health endpoint, and "exactly eight domains" otherwise forbids it.
+- **BE-VAL-01 (validation order):** validation runs inside the service, after the BE-AZ-03 checks (authentication, visibility, permission, then validation). Reason: the old wording ("before reaching a service") contradicted BE-AZ-03, which puts 403 before 422. The code already follows the BE-AZ-03 order.
+- **BE-ERR-02 (status codes):** adds 405 `METHOD_NOT_ALLOWED`, and lists the specific 409 codes `EMAIL_TAKEN`, `ALREADY_MEMBER`, `LAST_ADMIN` and `COLUMN_HAS_FOREIGN_WORK` with `CONFLICT` as the generic code. Reason: BE-AZ-07 and BE-ERR-01 already use these codes, and the table did not list them.
+
+**Related changes in other files**
+- `database.md` v4: notification types, position CHECK, minimum lengths and the `created_by` enforcer, as listed in its changelog.
+- `docs/violation_report.md` section 4: the proposals listed there are now applied.
+
+**Impact**
+- Implementation: the code already follows these rules, except for the notification types. Six types in BE-NTF-03 are not yet stored or emitted, because the database CHECK lacks them. That is open.
+- Tests: none change.
+
+---
+
+## v7: Rubric alignment and soft-deleted cards
 
 Edits after checking the files against the assignment checklist.
 
