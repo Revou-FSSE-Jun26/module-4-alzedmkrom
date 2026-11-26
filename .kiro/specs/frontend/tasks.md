@@ -684,8 +684,8 @@ Structure decisions:
     - `test.use({ viewport: { width: 375, height: 667 } })`. Register a user (with `expectLogoutButton: false`, because the nav is collapsed), then on `/` and on a board created in the test assert `document.documentElement.scrollWidth <= clientWidth` through `expect.poll`. Also assert that the menu button is visible at 375 px and hidden at 1280 px
     - _Requirements: 21.1, 21.2, 21.8, 26.5, 26.6_
 
-- [ ] 25. Write the README
-  - [ ] 25.1 Create `README.md`
+- [x] 25. Write the README
+  - [x] 25.1 Create `README.md`
     - Setup: `npm install` (explain that `.npmrc` sets `allow-remote=all` because npm 12 blocks the tarball URL of Tailwind's optional WASM package and fails with `EALLOWREMOTE`), and copying `.env.example` to `.env.local`
     - The commands `npm run dev`, `npm run build`, `npm test` and `npm run test:e2e`, each with a one-sentence description
     - Vercel: project root directory `frontend`, set `NEXT_PUBLIC_API_BASE_URL` and `API_BASE_URL` to the API origin (for example the Railway URL, no trailing slash and no `/api`), `PLAYWRIGHT_BASE_URL` is not needed in Vercel, `NEXT_PUBLIC_*` values are compiled in so a change needs a redeploy, and a note to check the first Vercel build log for the `.npmrc` setting and the install step
