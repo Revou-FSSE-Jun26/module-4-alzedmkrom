@@ -2,7 +2,7 @@
 
 Fill this in as you work. Replace every `TODO` and every italic hint. When finished, copy the result into the "AI Workflow Summary" section of `README.md` and delete the hints. Only write what you actually did.
 
-Status of this draft (2026-11-26): sections 3 to 6 and the running log are updated from the repo state and from this session. Items marked "Open for you" need your decision or your material, which I do not have.
+Status of this draft (2026-11-26): all six sections and the running log are updated from the repo state and from this session. Section 2 has two items marked "Open for you" that depend on your decisions about spec choices Kiro made without asking.
 
 ---
 
@@ -10,12 +10,11 @@ Status of this draft (2026-11-26): sections 3 to 6 and the running log are updat
 
 ### 1. Project brief
 
-*Where does the brief live (README or /specs)? What did you write yourself versus take from the course brief?*
-
-- Location: Open for you. The course brief is not in the repo context I worked from.
-- Overview, user roles (board member, board administrator), core features, tech stack: Open for you. The steering files state the roles and stack (`.kiro/steering/backend.md` "User types", `frontend.md` "User types"); copy from there if the README needs them.
-- Non-functional requirements included (at least 2): Open for you. Examples present in the steering: secrets from the environment (BE-SEC-01), restricted CORS (BE-SEC-02), no SQL built from strings (BE-SEC-03), and bounded pagination (BE-ERR-03).
-- What I changed or added to the course brief: Open for you.
+- Location: The course brief is not stored in the repo. The README only lists the `frontend/` and `backend/` folders. The overview is restated in the Introduction of `.kiro/specs/backend/requirements.md`.
+- Overview and roles: RevoTask is a Trello-like task manager. Board members create boards, organize work into columns, move cards by drag-and-drop, comment, and track tasks assigned to them. Board administrators also manage member access, oversee all cards, and monitor activity through analytics and notifications.
+- Stack: Backend is Flask, SQLAlchemy, Marshmallow, and PostgreSQL 18. Frontend is Next.js 16, React, TypeScript, and Tailwind.
+- Non-functional requirements included (at least 2): secrets come from environment variables, CORS is restricted, queries are parameterized, `per_page` is capped at 100, and 500 errors return a generic message. These rules come from the steering files (`backend.md` BE-SEC-01 to BE-SEC-03 and BE-ERR-03 to BE-ERR-04), not the course brief. If the README lists non-functional requirements, cite these rule IDs.
+- What I changed or added to the course brief: roles are per board, with no global role. Any logged-in user can create a board and becomes its admin. Boards are public by default. Member management, `GET /api/cards?assignee=me`, soft-deleted cards, and Swagger UI were added. On the frontend, registration signs the user in automatically, and "Move to column" is the keyboard fallback for drag-and-drop. Check this list against the brief before publishing.
 
 ### 2. Specification generation and iteration with Kiro
 
@@ -65,10 +64,10 @@ Status of this draft (2026-11-26): sections 3 to 6 and the running log are updat
 
 *Explain how generated code was checked against the guidelines before commit.*
 
-- Backend: required tasks 1 to 16 were committed (commits `c25ba64` to `7100d5b`, 2026-11-16 to 2026-11-17), one commit per blueprint or task. The OpenAPI and Swagger UI work (task 14, commit `1525acf`) is not in the current code. Commit `fe27c75` removed `app/common/` during the steering regeneration, and nothing restored the OpenAPI module, the docs routes or `SWAGGER_ENABLED`. `tasks.md` still marks task 14 as done, which is wrong. The 8 blueprint folders (`analytics`, `auth`, `boards`, `cards`, `columns`, `comments`, `notifications`, `users`) exist, plus the health route in the app factory, as `BE-STR-01` requires after the steering change. The backend was then regenerated against `backend.md` v8 by a sub-agent (commits `260712f` to `1935b07`, with one manual fix in `1935b07`).
+- Backend: required tasks 1 to 16 were committed (commits `c25ba64` to `7100d5b`, 2026-11-16 to 2026-11-17), one commit per blueprint or task. The OpenAPI and Swagger UI work (task 14) was lost when commit `fe27c75` removed `app/common/` during the steering regeneration. It has been restored: `app/openapi.py` now holds `build_openapi`, `register_docs`, and the `document` decorator; every route is decorated; `register_docs` is wired into `create_app` behind `settings.swagger_enabled`. All three sub-tasks (14.1, 14.2, 14.3) are done and committed (`ca5df1e`). The 8 blueprint folders (`analytics`, `auth`, `boards`, `cards`, `columns`, `comments`, `notifications`, `users`) exist, plus the health route in the app factory, as `BE-STR-01` requires after the steering change. The backend was then regenerated against `backend.md` v8 by a sub-agent (commits `260712f` to `1935b07`, with one manual fix in `1935b07`).
 - Backend tests (updated 2026-11-26, this is the test status, not what the draft said earlier):
   - Test files exist beyond the fixture smoke test: `tests/api/` has `test_auth_users`, `test_boards`, `test_cards`, `test_columns`, `test_comments_notifications`, `test_members`, `test_flows` and `test_fixtures_smoke`. `tests/database/` has `test_cascades`, `test_constraints`, `test_migrations`, `test_queries_smoke`, `test_schema` and `test_seed`.
-  - Last run: `python -m pytest tests/api tests/database -q -p no:randomly` gives 195 passed (140 API, 55 database) on PostgreSQL 18.
+  - Last run: `python -m pytest tests/api tests/database -q -p no:randomly` gives 204 passed (149 API including 9 Swagger, 55 database) on PostgreSQL 18.
   - Coverage: `pytest --cov=app` gives 95.7% (1353 statements, 58 missed), above the 80% gate in Requirement 23.
   - Open for you: optional tasks 17 and 18 in `backend/tasks.md` were not re-checked in this pass. Confirm their checkbox state before you mark the backend done.
 - Frontend: one top-level task at a time, with one commit per task (`feat(frontend): ... (task N)`, commits `5dd5a59` to `e3fbedd`, 2026-11-20 to 2026-11-21). `e3fbedd` is also the baseline for the steering comparison. Tasks 1 to 15 are checked as done. The baseline frontend was then scored against `frontend.md` (commit `6c7cbbb`), regenerated by a sub-agent in eight commits (`68a4358` to `95fd7f7`), and scored again (`00bb4ed`).
@@ -94,8 +93,9 @@ Status of this draft (2026-11-26): sections 3 to 6 and the running log are updat
 | 3 | `frontend/lib/errors.ts`: `ApiError` had only `statusCode` and `message`, so components could not read `code` or `details` | FE-API-03 (V-08) | `ApiError` has `statusCode`, `message`, `code` and `details`, filled from the BE-ERR-01 body (`68a4358`). |
 | 4 | `frontend/app/error.tsx`: read a `retry` prop, but Next.js passes `reset`, so "Try again" did nothing | FE-UX-01 | Shared `RouteError` uses `reset` (`e4c62f9`). |
 | 5 | `frontend/app/my-tasks/page.tsx`, `app/page.tsx` and `components/shared/FormField.tsx`: helper text at 14px, not the required 16px. `BaseBadge.tsx` and the notification timestamp at 12px, below the 14px minimum | FE-UX-03 (V-10) | Helper text at `text-base`, badges and timestamps at `text-sm`, `text-xs` only for the notification count (`341b4af`). |
+| 6 | `backend.md` v8 and earlier had no rule for OpenAPI or Swagger UI. When the backend was regenerated against the steering, `app/common/openapi.py` was deleted because the steering never mentioned it | BE-DOC-01, BE-DOC-02 (V-12) | Added section 11 (BE-DOC-01 to BE-DOC-04) to `backend.md` v9. Restored `app/openapi.py`, decorated all routes, wired `register_docs` into `create_app`, wrote 9 Swagger tests. `SWAGGER_ENABLED` defaults off in production (`ca5df1e`). |
 
-Full report: `docs/violation_report.md`, sections 1 and 2 (V-01 to V-11), with the scoring in section 3.2. Violations V-01 to V-07 are database and backend. V-08 to V-11 are frontend.
+Full report: `docs/violation_report.md`, sections 1 and 2 (V-01 to V-12), with the scoring in section 3.2. Violations V-01 to V-07 are database and backend. V-08 to V-11 are frontend. V-12 is a steering gap (Swagger omitted from `backend.md`).
 
 ### 6. Kiro CLI for tests and documentation
 
@@ -146,5 +146,7 @@ Add one line per event so you do not rely on memory later. Do not copy this tabl
 | 2026-11-26 | Steering | FE-AUTH-04 wording changed (option A, the user chose it). Client 401 deletes the cookie, Server Component 401 keeps it. `frontend.md` v11. Column header wrap fixed. | commit `22b2297` |
 | 2026-11-26 | Review | Anonymous visitors saw "Log out" and signed-in links in the header. Fixed to show "Log in". Found in a browser check, not by unit tests. | commit `f247df9` |
 | 2026-11-26 | Review | Swagger and OpenAPI (task 14, `1525acf`) are missing from the current backend. `fe27c75` deleted `app/common/`, and `tasks.md` still marks task 14 done. Found while checking the production Swagger default. Not restored yet. | `git show fe27c75`, `backend/app/`, `.kiro/specs/backend/tasks.md` |
-| 2026-11-26 | Verification | Backend: `pytest tests/api tests/database` 195 passed, `pytest --cov=app` 95.7%. Frontend: lint passes, 99 unit tests pass, `npm run build` compiles. Playwright: 4 tests pass on localhost (3 route-state, 1 registration). | `backend/`, `frontend/` run output, 2026-11-26 |
+| 2026-11-26 | Steering | Added section 11 (BE-DOC-01 to BE-DOC-04) to `backend.md` v9: OpenAPI document, Swagger UI, `document` decorator, `SWAGGER_ENABLED` production default, and tests. `config.py` gets `swagger_enabled`. Task 14 reset to open. | commit `36ffeb8`, `docs/backend-changelog.md` |
+| 2026-11-26 | Code | Restored `app/openapi.py` (`build_openapi`, `register_docs`, `document`). Decorated every route. Wired `register_docs` into `create_app`. Wrote 9 Swagger tests. Tasks 14, 14.1, 14.2, 14.3 all marked done. | commit `ca5df1e` |
+| 2026-11-26 | Verification | Backend: `pytest tests/api tests/database` 204 passed (195 + 9 Swagger), `pytest --cov=app` 95.7%. Frontend: lint, 99 unit tests, `npm run build` all pass. Playwright: 4 tests pass on localhost. | `backend/`, `frontend/` run output, 2026-11-26 |
 | | | | |
