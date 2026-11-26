@@ -692,7 +692,7 @@ Structure decisions:
     - CORS: the backend `CORS_ORIGINS` must list the exact Vercel origin as `https://<host>` with no trailing slash and no path, and `http://localhost:3000`. Server Component requests are server-to-server and need no `CORS_ORIGINS` entry. A Vercel preview deployment has its own origin and needs its own entry
     - _Requirements: 27.4, 27.5, 27.6, 27.7_
 
-- [ ] 26. Add the Vercel deployment configuration
+- [x] 26. Add the Vercel deployment configuration
   - [ ] 26.1 Create `vercel.json`
     - `$schema` `https://openapi.vercel.sh/vercel.json`, `framework` `nextjs`, `installCommand` `npm ci` and `buildCommand` `npm run build`. Holds no environment value and no secret. The project root directory `frontend` and the two API variables are set in the Vercel project, as the README states
     - _Requirements: 24.3, 27.2, 27.4_
