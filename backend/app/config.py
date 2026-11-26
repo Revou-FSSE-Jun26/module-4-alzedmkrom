@@ -15,6 +15,7 @@ class Settings:
     jwt_expires_minutes: int
     cors_origins: tuple[str, ...]
     secret_key: str | None
+    swagger_enabled: bool
 
 
 def parse_cors_origins(raw: str | None) -> tuple[str, ...]:
@@ -35,6 +36,16 @@ def parse_expires_minutes(raw: str | None) -> int:
     return int(value)
 
 
+def parse_swagger_enabled(raw: str | None, flask_env: str | None) -> bool:
+    """True in non-production environments unless explicitly disabled (BE-DOC-02)."""
+    if raw is not None and raw.strip().lower() in ("true", "1", "yes"):
+        return True
+    if raw is not None and raw.strip().lower() in ("false", "0", "no"):
+        return False
+    # No explicit value: off in production, on elsewhere.
+    return (flask_env or "").strip().lower() != "production"
+
+
 def load_settings(env: Mapping[str, str]) -> Settings:
     secret = env.get("JWT_SECRET_KEY")
     if secret is None or not secret.strip():
@@ -44,6 +55,9 @@ def load_settings(env: Mapping[str, str]) -> Settings:
         jwt_expires_minutes=parse_expires_minutes(env.get("JWT_EXPIRES_MINUTES")),
         cors_origins=parse_cors_origins(env.get("CORS_ORIGINS")),
         secret_key=env.get("SECRET_KEY") or None,
+        swagger_enabled=parse_swagger_enabled(
+            env.get("SWAGGER_ENABLED"), env.get("FLASK_ENV")
+        ),
     )
 
 

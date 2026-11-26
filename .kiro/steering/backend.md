@@ -9,7 +9,7 @@ Every guideline has an ID, a **Rule**, a **Rationale**, and a **RevoTask example
 
 ## Scope and boundaries
 
-This file owns: blueprint structure, schemas and validation, the response and error contract, authentication, authorization, ordering rules, analytics definitions, service-layer behavior, notification triggers, security configuration, and backend tests.
+This file owns: blueprint structure, schemas and validation, the response and error contract, authentication, authorization, ordering rules, analytics definitions, service-layer behavior, notification triggers, security configuration, API documentation (OpenAPI and Swagger UI), and backend tests.
 
 This file does NOT own, and must not restate:
 - Models, constraints, indexes, migrations, cascade settings, column types: see `database.md`.
@@ -374,7 +374,29 @@ Column types and constraints for `order`: see `database.md` → Ordering columns
 
 ---
 
-## 11. Testing
+## 11. API documentation
+
+### BE-DOC-01 OpenAPI document and Swagger UI
+- **Rule:** `app/openapi.py` exposes `build_openapi(app)` and `register_docs(app)`. `register_docs` is called in `create_app` only when `settings.swagger_enabled` is true. It adds three routes directly on the app (not a blueprint): `GET /api/docs` (Swagger UI HTML), `GET /api/openapi.json` (the OpenAPI 3.0 JSON), and `GET /swagger-ui/<path:filename>` (static UI assets from `swagger_ui_bundle`). The document is built once at startup; `build_openapi` raises `OpenAPIError` if any `/api/` route lacks metadata or if `apispec` fails. Routes that do not start with `/api/` and the three documentation routes themselves are excluded from the document.
+
+### BE-DOC-02 `SWAGGER_ENABLED` defaults
+- **Rule:** `config.py` reads `SWAGGER_ENABLED` from the environment. It defaults to `false` when `FLASK_ENV=production`, and to `true` in every other environment. The `.env.example` file documents the variable with a placeholder.
+- **Rationale:** Exposing the full API schema in production is a deliberate opt-in, not the default.
+- **RevoTask example:** a Railway deploy with `FLASK_ENV=production` and no `SWAGGER_ENABLED` variable serves no docs routes. Setting `SWAGGER_ENABLED=true` enables them.
+
+### BE-DOC-03 Route metadata with `document`
+- **Rule:** `app/openapi.py` exports a `document(*, summary, tags, request, success, many, query, public, status, conflict)` decorator. Every `/api/` route function is decorated with it. The decorator attaches metadata to the function as `fn.__openapi__` and changes no runtime behavior. `build_openapi` uses this metadata to generate each operation: path parameters become required UUID path parameters, `request` becomes the JSON request body, `success` and `many` become the success schema, `query` becomes query parameters, and standard error responses (401, 403, 404, 400, 409) are added when the route warrants them.
+- **Rationale:** Keeping metadata on the route function makes the OpenAPI document always match the actual routes without a separate spec file.
+- **RevoTask example:** `PATCH /api/cards/<id>/position` is decorated with `@document(summary="Move a card", tags=["cards"], request=CardPositionSchema, success=CardSchema, many=False, public=False, conflict=False)`.
+
+### BE-DOC-04 Swagger UI tests
+- **Rule:** Tests for the documentation routes cover: `GET /api/health` exists in the generated document; `GET /api/openapi.json` returns 200 with `Content-Type: application/json`; `GET /api/docs` returns 200 with `text/html`; a missing `__openapi__` attribute on a route causes `build_openapi` to raise `OpenAPIError`; and `SWAGGER_ENABLED=false` causes `register_docs` not to add the routes. Tests run with `swagger_enabled=True` in the app fixture.
+- **Rationale:** Without tests, the document silently breaks when routes change.
+- **RevoTask example:** `test_openapi_json_contains_health` calls `GET /api/openapi.json` and asserts `response.json["paths"]["/api/health"]["get"]["summary"]` is set.
+
+---
+
+## 12. Testing
 
 ### BE-TST-01 Test setup
 - **Rule:** Use pytest with an app-factory fixture, an isolated test database per run, and fixtures for: `anonymous_client`, `guest_client` (logged in, no membership), `member_client`, `other_member_client`, `admin_client` (Admin of the test board), and `outside_admin_client` (Admin of a different board). Tests never depend on each other's data or ordering.

@@ -1,12 +1,33 @@
 # backend.md Changelog
 
-Newest first. Versions v1 to v4 were rewritten over and cannot be downloaded; their entries are reconstructed from the conversation and summarize changes rather than showing exact diffs. All versions were produced on 2026-11-14. The current file is v8 (v8 produced on 2026-11-21; v1 to v7 on 2026-11-14).
+Newest first. The current file is v9 (produced on 2026-11-26).
 
 Keep this file outside `.kiro/steering/` (for example `docs/`) so Kiro does not load it as context.
 
 ---
 
-## v8 (current): Feedback from the backend scoring
+## v9 (current): API documentation (OpenAPI and Swagger UI)
+
+**Added**
+- **Section 11 (BE-DOC-01 to BE-DOC-04):** defines `app/openapi.py` with `build_openapi` and `register_docs`, the `document` route decorator, the three docs routes, and the Swagger UI tests.
+- Scope line updated to include API documentation.
+
+**Changed**
+- **Section numbering:** old section 11 (Testing) is now section 12 to make room.
+
+**BE-DOC-02:** `SWAGGER_ENABLED` defaults to `false` when `FLASK_ENV=production` and `true` otherwise. `config.py` now exports `parse_swagger_enabled` and `Settings.swagger_enabled`. `.env.example` documents the variable.
+
+**Reason**
+- The steering file never described OpenAPI or Swagger UI. When the backend was regenerated against the steering in commit `fe27c75`, the sub-agent removed `app/common/` (which held the original `openapi.py`). The code is gone; the tasks `14.1` and `14.2` are reset to open.
+
+**Impact**
+- Configuration: `load_settings` now produces `swagger_enabled`. Existing tests that call `load_settings` will pass because the new field has a sensible default.
+- Code: `app/openapi.py` and the `document` decorators on routes do not exist yet. Tasks 14.1, 14.2, and 14.3 are open.
+- Tests: none break. The new coverage comes in Stage 2 (task 14.3).
+
+---
+
+## v8: Feedback from the backend scoring
 
 Applied after the violation report (`docs/violation_report.md` section 4).
 
