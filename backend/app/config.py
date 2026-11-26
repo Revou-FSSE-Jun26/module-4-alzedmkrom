@@ -1,5 +1,4 @@
-"""Environment-driven application settings."""
-
+"""Environment-driven application settings (BE-SEC-01, BE-SEC-02)."""
 from __future__ import annotations
 
 import re
@@ -7,15 +6,15 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 DEFAULT_CORS_ORIGINS: tuple[str, ...] = ("http://localhost:3000",)
-DEFAULT_EXPIRES = 3600
+DEFAULT_EXPIRES_MINUTES = 60
 
 
 @dataclass(frozen=True)
 class Settings:
     jwt_secret_key: str
-    jwt_access_token_expires: int  # seconds
+    jwt_expires_minutes: int
     cors_origins: tuple[str, ...]
-    swagger_enabled: bool
+    secret_key: str | None
 
 
 def parse_cors_origins(raw: str | None) -> tuple[str, ...]:
@@ -26,22 +25,14 @@ def parse_cors_origins(raw: str | None) -> tuple[str, ...]:
     return origins or DEFAULT_CORS_ORIGINS
 
 
-def parse_swagger_enabled(raw: str | None) -> bool:
-    """False only when the trimmed value equals 'false' case-insensitively."""
-    if raw is None:
-        return True
-    return raw.strip().casefold() != "false"
-
-
-def parse_expires(raw: str | None) -> int:
-    """3600 when unset or empty; otherwise a positive decimal integer."""
-    if raw is None or raw == "":
-        return DEFAULT_EXPIRES
-    if re.fullmatch(r"[0-9]+", raw) is None or int(raw) <= 0:
-        raise RuntimeError(
-            "JWT_ACCESS_TOKEN_EXPIRES must be a positive integer number of seconds"
-        )
-    return int(raw)
+def parse_expires_minutes(raw: str | None) -> int:
+    """60 when unset or empty; otherwise a positive decimal integer of minutes."""
+    if raw is None or raw.strip() == "":
+        return DEFAULT_EXPIRES_MINUTES
+    value = raw.strip()
+    if re.fullmatch(r"[0-9]+", value) is None or int(value) <= 0:
+        raise RuntimeError("JWT_EXPIRES_MINUTES must be a positive integer number of minutes")
+    return int(value)
 
 
 def load_settings(env: Mapping[str, str]) -> Settings:
@@ -50,9 +41,9 @@ def load_settings(env: Mapping[str, str]) -> Settings:
         raise RuntimeError("JWT_SECRET_KEY is not set or is empty")
     return Settings(
         jwt_secret_key=secret,
-        jwt_access_token_expires=parse_expires(env.get("JWT_ACCESS_TOKEN_EXPIRES")),
+        jwt_expires_minutes=parse_expires_minutes(env.get("JWT_EXPIRES_MINUTES")),
         cors_origins=parse_cors_origins(env.get("CORS_ORIGINS")),
-        swagger_enabled=parse_swagger_enabled(env.get("SWAGGER_ENABLED")),
+        secret_key=env.get("SECRET_KEY") or None,
     )
 
 
