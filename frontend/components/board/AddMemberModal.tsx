@@ -75,7 +75,7 @@ export function AddMemberModal({ boardId, onAdded }: AddMemberModalProps) {
     <>
       <BaseButton onClick={openModal}>Add member</BaseButton>
 
-      <BaseModal open={open} title="Add member" onClose={closeModal}>
+      <BaseModal open={open} title="Add member" onClose={closeModal} dismissDisabled={pending}>
         <form className="flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
           <FormField label="Email" error={emailError}>
             {(control) => (

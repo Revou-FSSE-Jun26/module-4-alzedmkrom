@@ -125,7 +125,12 @@ export function BoardHeader({ board, onRenamed }: BoardHeaderProps) {
           <BaseButton variant="destructive" onClick={() => setDeleteOpen(true)}>
             Delete board
           </BaseButton>
-          <BaseModal open={renameOpen} title="Rename board" onClose={closeRename}>
+          <BaseModal
+            open={renameOpen}
+            title="Rename board"
+            onClose={closeRename}
+            dismissDisabled={renamePending}
+          >
             <form className="flex flex-col gap-4" noValidate onSubmit={handleRename}>
               <FormAlert message={formError} />
               <FormField label="Name" error={nameError}>

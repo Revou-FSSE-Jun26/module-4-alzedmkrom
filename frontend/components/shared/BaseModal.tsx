@@ -11,6 +11,8 @@ export interface BaseModalProps {
   onClose: () => void;
   children: ReactNode;
   size?: BaseModalSize;
+  /** True while a submit is pending. Escape and backdrop click do nothing then (FE-UI-03). */
+  dismissDisabled?: boolean;
 }
 
 /**
@@ -87,15 +89,30 @@ function restoreFocus(previous: HTMLElement | null): void {
   }
 }
 
-export function BaseModal({ open, title, onClose, children, size = 'md' }: BaseModalProps) {
+export function BaseModal({
+  open,
+  title,
+  onClose,
+  children,
+  size = 'md',
+  dismissDisabled = false,
+}: BaseModalProps) {
   const headingId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
+  const dismissDisabledRef = useRef(dismissDisabled);
   const [token] = useState(() => Symbol('base-modal'));
 
   useEffect(() => {
     onCloseRef.current = onClose;
-  }, [onClose]);
+    dismissDisabledRef.current = dismissDisabled;
+  }, [onClose, dismissDisabled]);
+
+  const requestClose = () => {
+    if (!dismissDisabledRef.current) {
+      onCloseRef.current();
+    }
+  };
 
   useEffect(() => {
     if (!open) {
@@ -116,7 +133,7 @@ export function BaseModal({ open, title, onClose, children, size = 'md' }: BaseM
         return;
       }
       if (event.key === 'Escape') {
-        onCloseRef.current();
+        requestClose();
       } else if (event.key === 'Tab' && dialogRef.current) {
         trapTab(event, dialogRef.current);
       }
@@ -139,7 +156,7 @@ export function BaseModal({ open, title, onClose, children, size = 'md' }: BaseM
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div aria-hidden="true" className="absolute inset-0 bg-black/50" onClick={() => onClose()} />
+      <div aria-hidden="true" className="absolute inset-0 bg-black/50" onClick={requestClose} />
       <div
         ref={dialogRef}
         role="dialog"

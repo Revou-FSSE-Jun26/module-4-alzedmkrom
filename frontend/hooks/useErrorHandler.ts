@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/errors";
 import { error as showErrorToast } from "@/lib/toast";
@@ -19,45 +20,50 @@ export interface ErrorDescription {
   endsSession: boolean;
   /** True when the error has field details the form shows inline (FE-FRM-02). */
   hasFieldDetails: boolean;
+  /** True when the UI may be stale (403 or 404), so the route is refreshed (FE-ROLE-03). */
+  refreshData: boolean;
 }
 
 /** Maps any thrown value to the toast text (FE-API-05). */
 export function describeError(error: unknown): ErrorDescription {
   if (!(error instanceof ApiError)) {
-    return { message: GENERIC_MESSAGE, endsSession: false, hasFieldDetails: false };
+    return { message: GENERIC_MESSAGE, endsSession: false, hasFieldDetails: false, refreshData: false };
   }
   // Code overrides come first. The 409 messages are the server's own text.
   if (error.statusCode === 0 || error.code === "NETWORK_ERROR") {
-    return { message: UNREACHABLE_MESSAGE, endsSession: false, hasFieldDetails: false };
+    return { message: UNREACHABLE_MESSAGE, endsSession: false, hasFieldDetails: false, refreshData: false };
   }
   switch (error.statusCode) {
     case 401:
-      return { message: null, endsSession: true, hasFieldDetails: false };
+      return { message: null, endsSession: true, hasFieldDetails: false, refreshData: false };
     case 403:
-      return { message: FORBIDDEN_MESSAGE, endsSession: false, hasFieldDetails: false };
+      return { message: FORBIDDEN_MESSAGE, endsSession: false, hasFieldDetails: false, refreshData: true };
     case 404:
-      return { message: NOT_FOUND_MESSAGE, endsSession: false, hasFieldDetails: false };
+      return { message: NOT_FOUND_MESSAGE, endsSession: false, hasFieldDetails: false, refreshData: true };
     case 409:
-      return { message: error.message, endsSession: false, hasFieldDetails: false };
+      return { message: error.message, endsSession: false, hasFieldDetails: false, refreshData: false };
     case 422: {
       const hasFieldDetails = error.details !== null && Object.keys(error.details).length > 0;
       return {
         message: hasFieldDetails ? null : VALIDATION_MESSAGE,
         endsSession: false,
         hasFieldDetails,
+        refreshData: false,
       };
     }
     default:
-      return { message: GENERIC_MESSAGE, endsSession: false, hasFieldDetails: false };
+      return { message: GENERIC_MESSAGE, endsSession: false, hasFieldDetails: false, refreshData: false };
   }
 }
 
 // Returns a handler that shows one toast, or runs the expiry flow on 401 (FE-AUTH-04).
+// After a 403 or 404 it refreshes the route, so roles and data reload (FE-ROLE-03).
 export function useErrorHandler(): (error: unknown) => void {
   const { expireSession } = useAuth();
+  const router = useRouter();
   return useCallback(
     (error: unknown) => {
-      const { message, endsSession } = describeError(error);
+      const { message, endsSession, refreshData } = describeError(error);
       if (endsSession) {
         void expireSession();
         return;
@@ -65,7 +71,10 @@ export function useErrorHandler(): (error: unknown) => void {
       if (message !== null) {
         showErrorToast(message);
       }
+      if (refreshData) {
+        router.refresh();
+      }
     },
-    [expireSession],
+    [expireSession, router],
   );
 }

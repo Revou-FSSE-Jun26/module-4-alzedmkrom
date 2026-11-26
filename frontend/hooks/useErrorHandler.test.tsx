@@ -1,7 +1,8 @@
 import { renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { AuthContext, type AuthContextValue } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import { describeError, useErrorHandler } from "@/hooks/useErrorHandler";
 import { ApiError } from "@/lib/errors";
 import { error as showErrorToast } from "@/lib/toast";
@@ -21,6 +22,7 @@ describe("describeError (FE-API-05)", () => {
       message: null,
       endsSession: true,
       hasFieldDetails: false,
+      refreshData: false,
     });
   });
 
@@ -46,7 +48,12 @@ describe("describeError (FE-API-05)", () => {
     const withDetails = describeError(
       new ApiError(422, "x", "VALIDATION_ERROR", { title: ["Too long."] }),
     );
-    expect(withDetails).toEqual({ message: null, endsSession: false, hasFieldDetails: true });
+    expect(withDetails).toEqual({
+      message: null,
+      endsSession: false,
+      hasFieldDetails: true,
+      refreshData: false,
+    });
     expect(describeError(new ApiError(422, "x", "VALIDATION_ERROR", null)).message).toBe(
       "Please check the highlighted fields.",
     );
@@ -97,5 +104,26 @@ describe("useErrorHandler", () => {
     result.current(new ApiError(401, "x", "UNAUTHENTICATED"));
     expect(auth.expireSession).toHaveBeenCalledTimes(1);
     expect(showErrorToast).not.toHaveBeenCalled();
+  });
+
+  // FE-ROLE-03: a 403 or 404 on a write refreshes the route so roles and data reload.
+  it("refreshes the route after a 403 and after a 404", () => {
+    const { result } = renderHook(() => useErrorHandler(), { wrapper });
+    const refresh = vi.mocked(useRouter)().refresh as unknown as Mock;
+    refresh.mockClear();
+    result.current(new ApiError(403, "x", "FORBIDDEN"));
+    expect(refresh).toHaveBeenCalledTimes(1);
+    result.current(new ApiError(404, "x", "NOT_FOUND"));
+    expect(refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not refresh for a 409, a 422, or a 401", () => {
+    const { result } = renderHook(() => useErrorHandler(), { wrapper });
+    const refresh = vi.mocked(useRouter)().refresh as unknown as Mock;
+    refresh.mockClear();
+    result.current(new ApiError(409, "Column still has other cards.", "COLUMN_HAS_FOREIGN_WORK"));
+    result.current(new ApiError(422, "x", "VALIDATION_ERROR", null));
+    result.current(new ApiError(401, "x", "UNAUTHENTICATED"));
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

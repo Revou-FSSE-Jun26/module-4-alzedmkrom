@@ -65,7 +65,7 @@ export function CreateBoardModal() {
     <>
       <BaseButton onClick={openModal}>Create board</BaseButton>
 
-      <BaseModal open={open} title="Create board" onClose={closeModal}>
+      <BaseModal open={open} title="Create board" onClose={closeModal} dismissDisabled={pending}>
         <form className="flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
           <FormField label="Name" error={nameError}>
             {(control) => (

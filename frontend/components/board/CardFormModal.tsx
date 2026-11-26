@@ -94,7 +94,7 @@ export function CardFormModal({ open, columnId, members, onClose, onCreated }: C
   }
 
   return (
-    <BaseModal open={open} title="Add card" onClose={onClose} size="lg">
+    <BaseModal open={open} title="Add card" onClose={onClose} size="lg" dismissDisabled={pending}>
       <form className="flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
         <FormAlert message={formError} />
         <FormField label="Title" error={errors.title}>

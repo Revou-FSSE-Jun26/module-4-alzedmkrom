@@ -24,6 +24,37 @@ function Host({ onClose }: { onClose: () => void }) {
 }
 
 describe("BaseModal (FE-UI-03)", () => {
+  it("ignores Escape and backdrop click while dismissDisabled (a submit is pending)", () => {
+    const onClose = vi.fn();
+    const { container } = render(
+      <BaseModal open title="Saving" onClose={onClose} dismissDisabled>
+        <BaseButton>Inside</BaseButton>
+      </BaseModal>,
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    const backdrop = container.ownerDocument.querySelector('[aria-hidden="true"].absolute');
+    expect(backdrop).not.toBeNull();
+    fireEvent.click(backdrop as Element);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Saving" })).toBeInTheDocument();
+  });
+
+  it("closes on Escape again once dismissDisabled is cleared", () => {
+    const onClose = vi.fn();
+    const { rerender } = render(
+      <BaseModal open title="Saving" onClose={onClose} dismissDisabled>
+        <BaseButton>Inside</BaseButton>
+      </BaseModal>,
+    );
+    rerender(
+      <BaseModal open title="Saving" onClose={onClose} dismissDisabled={false}>
+        <BaseButton>Inside</BaseButton>
+      </BaseModal>,
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("renders as a labelled dialog", () => {
     render(<Host onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Open" }));

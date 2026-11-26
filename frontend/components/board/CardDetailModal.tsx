@@ -174,7 +174,7 @@ export function CardDetailModal({
 
   return (
     <>
-      <BaseModal open title="Edit card" onClose={onClose} size="lg">
+      <BaseModal open title="Edit card" onClose={onClose} size="lg" dismissDisabled={saving || deleting}>
         <div className="flex flex-col gap-4">
           {canEdit ? (
             <FormField label="Column">

@@ -86,7 +86,12 @@ export function ColumnFormModal({
   }
 
   return (
-    <BaseModal open={open} title={mode === "create" ? "Add column" : "Rename column"} onClose={onClose}>
+    <BaseModal
+      open={open}
+      title={mode === "create" ? "Add column" : "Rename column"}
+      onClose={onClose}
+      dismissDisabled={pending}
+    >
       <form className="flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
         <FormAlert message={formError} />
         <FormField label="Name" error={nameError}>
