@@ -1,3 +1,4 @@
+from typing import Any
 """Board listing, detail, edits, membership (BE-AZ-07, BE-SVC-02..04)."""
 from collections import defaultdict
 
@@ -20,7 +21,7 @@ from app.errors import Conflict, NotFound, Unauthenticated, ValidationFailed
 from app.extensions import db
 from app.models import Board, BoardColumn, BoardMember, Card, User
 from app.pagination import paginate
-from app.permissions import ADMIN, authorize, board_admin_ids, load_board, viewer_roles
+from app.permissions import ADMIN, resolve_board_role, authorize, board_admin_ids, load_board, viewer_roles
 from app.schemas import parse
 from app.transactions import lock_board, transactional
 
@@ -204,3 +205,8 @@ def remove_member(user, board_id, target_user_id):
     db.session.delete(member)
 
 
+def member_row(viewer, member, person) -> dict[str, Any]:
+    """Member row for a response, with email only for Admins of the board (BE-VAL-04)."""
+    board = db.session.get(Board, member.board_id)
+    viewer_is_admin = resolve_board_role(viewer, board) == ADMIN
+    return member_payload(member, person, viewer_is_admin)

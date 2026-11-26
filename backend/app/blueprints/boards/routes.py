@@ -3,9 +3,7 @@ from flask import Blueprint, request, jsonify
 from app.auth_utils import auth_optional, auth_required, current_user
 from app.blueprints.boards import service
 from app.blueprints.boards.schema import BoardSchema, MemberSchema
-from app.extensions import db
 from app.permissions import resolve_board_role
-from app.models import Board
 
 bp = Blueprint("boards", __name__)
 
@@ -77,15 +75,4 @@ def remove_member(board_id, user_id):
 
 
 def _member_out(member, person):
-    """Admins see emails. Admin status is checked on the caller's own row."""
-    board = db.session.get(Board, member.board_id)
-    viewer_is_admin = resolve_board_role(current_user(), board) == "admin"
-    return MemberSchema().dump(
-        {
-            "user_id": person.id,
-            "name": person.name,
-            "email": person.email if viewer_is_admin else None,
-            "role": member.role,
-            "created_at": member.created_at,
-        }
-    )
+    return service.member_row(current_user(), member, person)
