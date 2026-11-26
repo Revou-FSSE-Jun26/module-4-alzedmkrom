@@ -3,22 +3,19 @@
 import { useMemo, useReducer, useState } from "react";
 import { BaseButton } from "@/components/shared/BaseButton";
 import { ConfirmModal } from "@/components/shared/ConfirmModal";
-import { BoardHeader } from "@/components/BoardHeader";
-import { CardDetailModal } from "@/components/CardDetailModal";
-import { CardFormModal } from "@/components/CardFormModal";
-import { CardSearch } from "@/components/CardSearch";
-import { ColumnFormModal } from "@/components/ColumnFormModal";
-import { KanbanColumn } from "@/components/KanbanColumn";
+import { BoardHeader } from "@/components/board/BoardHeader";
+import { CardDetailModal } from "@/components/board/CardDetailModal";
+import { CardFormModal } from "@/components/board/CardFormModal";
+import { CardSearch } from "@/components/board/CardSearch";
+import { ColumnFormModal } from "@/components/board/ColumnFormModal";
+import { KanbanColumn } from "@/components/board/KanbanColumn";
+import { ReadOnlyNotice } from "@/components/ReadOnlyNotice";
 import { useApi } from "@/hooks/useApi";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
-import {
-  boardReducer,
-  findCard,
-  initBoardState,
-  visibleCards,
-} from "@/lib/boardState";
-import type { BoardDetail, Column, DeletedId, Member } from "@/lib/types";
+import { boardReducer, findCard, initBoardState, visibleCards, type BoardColumn } from "@/lib/boardState";
+import { rolesFor } from "@/lib/roles";
+import type { BoardDetail, Column, Member } from "@/types/api";
 
 // Which dialog is open on the board. `null` means none.
 type ModalState =
@@ -33,30 +30,28 @@ export interface BoardViewProps {
   members: Member[];
 }
 
-// The interactive board: columns, cards, search, drag and drop, and the dialogs
-// that change them (Requirements 10.2 to 10.4, 11.3 to 11.6, 11.10, 12.9, 13.11, 15.4, 15.6).
+// The interactive board: columns, cards, search, drag and drop, and the dialogs that change
+// them. Write controls appear only for Members and Admins (FE-ROLE-01, FE-ROLE-02).
 export function BoardView({ initialBoard, members }: BoardViewProps) {
   const [state, dispatch] = useReducer(boardReducer, initialBoard, initBoardState);
-  // Ids of the cards matching the search, or null when no search is active.
-  const [searchIds, setSearchIds] = useState<ReadonlySet<string> | null>(null);
+  // The search term from CardSearch. Matching runs in the browser (CardSearch.tsx).
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchIds = useMemo(() => matchingCardIds(state.columns, searchTerm), [state.columns, searchTerm]);
   const [modal, setModal] = useState<ModalState>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [deletePending, setDeletePending] = useState(false);
-
   const api = useApi();
   const handleError = useErrorHandler();
+
+  const roles = rolesFor(state.board.my_role);
+
   // Dragging is off while a search filter is active (decision F7).
   const dnd = useDragAndDrop({
-    boardId: state.board.id,
     state,
     dispatch,
+    canWrite: roles.canWrite,
     disabled: searchIds !== null,
   });
-
-  const memberById = useMemo(
-    () => new Map(members.map((member) => [member.user_id, member])),
-    [members],
-  );
 
   const selected = selectedCardId === null ? null : findCard(state, selectedCardId);
   // The card modal closes when its card no longer exists, for example after a delete.
@@ -90,7 +85,7 @@ export function BoardView({ initialBoard, members }: BoardViewProps) {
     if (modal?.kind === "renameColumn") {
       dispatch({ type: "column/renamed", column: saved });
     } else {
-      dispatch({ type: "column/added", column: { ...saved, cards: [] } });
+      dispatch({ type: "column/added", column: saved });
     }
   }
 
@@ -100,7 +95,7 @@ export function BoardView({ initialBoard, members }: BoardViewProps) {
     }
     setDeletePending(true);
     try {
-      await api.delete<DeletedId>(`/api/columns/${columnId}`);
+      await api.delete<void>(`/api/columns/${columnId}`);
       setDeletePending(false);
       dispatch({ type: "column/removed", columnId });
       closeModal();
@@ -117,26 +112,32 @@ export function BoardView({ initialBoard, members }: BoardViewProps) {
         board={state.board}
         onRenamed={(name) => dispatch({ type: "board/renamed", name })}
       />
-
+      <ReadOnlyNotice role={state.board.my_role} />
       <div className="flex flex-wrap items-center gap-3">
-        <CardSearch onResults={(ids) => setSearchIds(ids)} />
-        <BaseButton onClick={() => setModal({ kind: "addColumn" })}>Add column</BaseButton>
+        <CardSearch onTermChange={setSearchTerm} />
+        {roles.canWrite ? (
+          <BaseButton onClick={() => setModal({ kind: "addColumn" })}>Add column</BaseButton>
+        ) : null}
       </div>
-
       {noMatches ? (
-        <p role="status" className="text-sm text-gray-600">
+        <p role="status" className="text-base text-gray-600">
           No cards match your search
         </p>
       ) : null}
-
-      <div className="flex gap-4 overflow-x-auto" {...dnd.columnDropProps()}>
+      {state.columns.length === 0 ? (
+        <p className="text-base text-gray-600">
+          {roles.canWrite ? "No columns yet. Add the first column to start." : "No columns yet."}
+        </p>
+      ) : null}
+      <div className="flex gap-4 overflow-x-auto">
         {columnsWithShownCards.map(({ column, cards }) => (
           <KanbanColumn
             key={column.id}
             column={column}
             cards={cards}
-            memberById={memberById}
             dnd={dnd}
+            canWrite={roles.canWrite}
+            canManage={roles.canManage}
             onAddCard={() => setModal({ kind: "addCard", columnId: column.id })}
             onRename={() => setModal({ kind: "renameColumn", columnId: column.id })}
             onDelete={() => setModal({ kind: "deleteColumn", columnId: column.id })}
@@ -144,7 +145,6 @@ export function BoardView({ initialBoard, members }: BoardViewProps) {
           />
         ))}
       </div>
-
       <ColumnFormModal
         mode={modal?.kind === "renameColumn" ? "rename" : "create"}
         open={modal?.kind === "addColumn" || modal?.kind === "renameColumn"}
@@ -153,7 +153,6 @@ export function BoardView({ initialBoard, members }: BoardViewProps) {
         onClose={closeModal}
         onSaved={handleColumnSaved}
       />
-
       <CardFormModal
         open={addCardColumnId !== null}
         columnId={addCardColumnId ?? ""}
@@ -165,14 +164,13 @@ export function BoardView({ initialBoard, members }: BoardViewProps) {
           }
         }}
       />
-
       <ConfirmModal
         open={modal?.kind === "deleteColumn"}
         title="Delete column"
         message={
           deleteTarget === undefined
             ? "Delete this column and all its cards? This cannot be undone."
-            : `Delete "${deleteTarget.title}" and all its cards? This cannot be undone.`
+            : `Delete "${deleteTarget.name}" and all its cards? This cannot be undone.`
         }
         confirmLabel="Delete"
         pending={deletePending}
@@ -183,14 +181,13 @@ export function BoardView({ initialBoard, members }: BoardViewProps) {
         }}
         onCancel={closeModal}
       />
-
       {selected !== null ? (
         <CardDetailModal
           card={selected.card}
           columnId={selected.columnId}
           columns={state.columns}
           members={members}
-          boardRole={state.board.role}
+          role={state.board.my_role}
           dnd={dnd}
           onClose={() => setSelectedCardId(null)}
           onSaved={(card) => dispatch({ type: "card/replaced", card })}
@@ -199,4 +196,26 @@ export function BoardView({ initialBoard, members }: BoardViewProps) {
       ) : null}
     </div>
   );
+}
+
+// Ids of the cards whose title or description contains the term, ignoring case. Null means no
+// search is active, so every card is shown. Dragging is disabled while a search is active (F7).
+function matchingCardIds(
+  columns: readonly BoardColumn[],
+  term: string,
+): ReadonlySet<string> | null {
+  if (term === "") {
+    return null;
+  }
+  const needle = term.toLocaleLowerCase();
+  const ids = new Set<string>();
+  for (const column of columns) {
+    for (const card of column.cards) {
+      const haystack = `${card.title}\n${card.description ?? ""}`.toLocaleLowerCase();
+      if (haystack.includes(needle)) {
+        ids.add(card.id);
+      }
+    }
+  }
+  return ids;
 }
