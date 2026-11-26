@@ -217,12 +217,12 @@ Use the evidence column for the file path, line, or command output that proves t
 | 11 | BE-SVC-01 | Services commit once and roll back on error, and routes never commit | TODO | TODO | TODO |
 | 12 | BE-SVC-02 | `GET /api/boards/<id>` loads columns and cards with eager loading (no per-column or per-card queries) | TODO | TODO | TODO |
 | 13 | BE-SEC-01 | No hard-coded secrets, values come from the environment, and `.env.example` exists | TODO | TODO | TODO |
-| 14 | DB-CNV-03 | Every primary key is a UUID | TODO | TODO | TODO |
-| 15 | DB-SCH-01 | The `Card` model has `created_at`, `updated_at`, and `deleted_at` | TODO | TODO | TODO |
-| 16 | DB-MEM-01 | Roles are stored per board (`board_members.role`), and `users` has no role column | TODO | TODO | TODO |
-| 17 | DB-ORD-01 | Card and column ordering uses `db.Float` with a positive-value CHECK | TODO | TODO | TODO |
-| 18 | DB-CAS-01 | Foreign keys declare the `ON DELETE` behavior from the cascade table | TODO | TODO | TODO |
-| 19 | DB-IDX-01 | The listed indexes exist (record how many of the 12 rows are present) | TODO | TODO | TODO |
+| 14 | DB-CNV-03 | Every primary key is a UUID | Pass | TODO | `backend/app/models/mixins.py:13-18` (UUID PK, `gen_random_uuid()` server default). `board_members` uses the composite PK, which the rule allows. |
+| 15 | DB-SCH-01 | The `Card` model has `created_at`, `updated_at`, and `deleted_at` | Pass | TODO | `backend/app/models/card.py:7` `class Card(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, db.Model)`. Whole table list does NOT match the steering schema (see section 4). |
+| 16 | DB-MEM-01 | Roles are stored per board (`board_members.role`), and `users` has no role column | Pass | TODO | `backend/app/models/board.py:47,53` `role` with CHECK `role IN (member, admin)`. `backend/app/models/user.py` has no role column. |
+| 17 | DB-ORD-01 | Card and column ordering uses `db.Float` with a positive-value CHECK | Pass | TODO | `card.py:27` and `column.py:16` `db.Float`, `nullable=False`; CHECKs `order_positive_finite` (card) and `order_positive` (column), `column.py:29`. Column is named `order`, not `position` as steering DB-ORD-01 says. |
+| 18 | DB-CAS-01 | Foreign keys declare the `ON DELETE` behavior from the cascade table | Fail | TODO | No composite FK `(column_id, board_id)` on cards (`card.py`). `boards.owner_id`, `cards.created_by`, `comments.user_id` use RESTRICT, steering says SET NULL. `notifications.board_id` has FK CASCADE (`notification.py:15-17`), steering says no FK. Matches `CASCADE` on `board_members`, `columns`, `comments.card_id`, `notifications.user_id`, and `SET NULL` on `cards.assignee_id`. |
+| 19 | DB-IDX-01 | The listed indexes exist (record how many of the 12 rows are present) | Fail | TODO | 3 of 12 present: `uq_users_email_lower`, `ix_board_members_user_id`, `ix_columns_board_id_order` (named `order`). 1 partial: `ix_notifications_user_id_created_at` (no DESC, no unread partial index). 8 missing or not partial: boards public index, columns done unique, cards x3 partial indexes (`ix_cards_*` not partial), cards `(board_id, created_by)`, cards composite completed, comments `(card_id, created_at)` (only `ix_comments_card_id`), comments `(created_by)`. Grep: `backend/app/models/*.py` `db.Index`. |
 | 20 | FE-STR-03 | Dashboard and Board Detail are Server Components | TODO | TODO | TODO |
 | 21 | FE-API-01, FE-API-03 | One `apiClient` makes all backend calls and throws an `ApiError` with `statusCode` and `message` | TODO | TODO | TODO |
 | 22 | FE-DND-03 | Drag-and-drop uses native events, updates optimistically, and restores the exact original position on error | TODO | TODO | TODO |
