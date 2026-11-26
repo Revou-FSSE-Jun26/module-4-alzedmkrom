@@ -1,24 +1,15 @@
-from flask import Blueprint
+from flask import Blueprint, jsonify
 
-from app.common.access import get_board_for_user, require_admin
-from app.common.auth import current_user, protected
-from app.common.envelope import ok
-from app.common.openapi import document
-
-from . import service
-from .schema import AnalyticsOutSchema
+from app.auth_utils import auth_required, current_user
+from app.blueprints.analytics import service
+from app.schemas import to_utc_iso
 
 bp = Blueprint("analytics", __name__)
 
 
-@bp.get("/api/boards/<board_id>/analytics")
-@document(
-    summary="Board analytics (admin only)",
-    success=AnalyticsOutSchema,
-    status=200,
-)
-@protected
-def get_analytics(board_id):
-    access = get_board_for_user(current_user().id, board_id)
-    require_admin(access)
-    return ok(AnalyticsOutSchema().dump(service.get_analytics(access.board_id)))
+@bp.get("/api/boards/<uuid:board_id>/analytics")
+@auth_required
+def board_analytics(board_id):
+    data = service.board_analytics(current_user(), board_id)
+    data["week_start"] = to_utc_iso(data["week_start"])
+    return jsonify(data), 200

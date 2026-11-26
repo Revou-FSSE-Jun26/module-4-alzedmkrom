@@ -1,81 +1,68 @@
-from typing import Any
+"""Comments on live cards (BE-AZ-02, BE-AZ-05, BE-NTF-01)."""
+from sqlalchemy.orm import selectinload
 
-from sqlalchemy import select
-
-from app.common.access import CardAccess, CommentAccess
-from app.common.constants import ActivityAction, NotificationType
-from app.common.db import commit_or_conflict
-from app.common.events import (
-    create_notification,
-    fit_message,
-    log_activity,
-    message_comment_added,
-)
+from app.blueprints.comments.schema import CommentCreateSchema, CommentUpdateSchema
+from app.blueprints.notifications.service import notify
+from app.errors import NotFound
 from app.extensions import db
-from app.models.board import BoardMember
-from app.models.comment import Comment
-from app.models.user import User
+from app.models import Comment
+from app.permissions import authorize, load_board, load_card
+from app.schemas import parse
+from app.transactions import transactional
 
 
-def create_comment(user: User, access: CardAccess, data: dict[str, Any]) -> Comment:
-    card = access.card
-    board_id = access.board_id
-    comment = Comment(card_id=card.id, user_id=user.id, body=data["content"])
-    db.session.add(comment)
-    db.session.flush()
-    log_activity(board_id, user.id, ActivityAction.COMMENT_ADDED, card.id)
-
-    candidates = {
-        uid
-        for uid in (card.created_by, card.assignee_id)
-        if uid is not None and uid != user.id
-    }
-    if candidates:
-        members = (
-            db.session.execute(
-                select(BoardMember.user_id).where(
-                    BoardMember.board_id == board_id,
-                    BoardMember.user_id.in_(candidates),
-                )
-            )
-            .scalars()
-            .all()
-        )
-        message = fit_message(message_comment_added, card.title)
-        for uid in sorted(set(members), key=str):
-            create_notification(
-                uid, board_id, NotificationType.COMMENT_ADDED, message, card.id
-            )
-
-    commit_or_conflict()
-    db.session.refresh(comment)
-    return comment
-
-
-def list_comments(access: CardAccess) -> list[Comment]:
-    return list(
-        db.session.execute(
-            select(Comment)
-            .where(Comment.card_id == access.card.id, Comment.deleted_at.is_(None))
-            .order_by(Comment.created_at.asc(), Comment.id.asc())
-        )
-        .scalars()
+def list_comments(user, card_id):
+    card = load_card(card_id)
+    board = load_board(card.board_id)
+    authorize(user, "board:read", board)
+    return (
+        Comment.query.options(selectinload(Comment.author))
+        .filter(Comment.card_id == card.id)
+        .order_by(Comment.created_at, Comment.id)
         .all()
     )
 
 
-def update_comment(
-    user: User, access: CommentAccess, data: dict[str, Any]
-) -> Comment:
-    comment = access.comment
-    comment.body = data["content"]
-    commit_or_conflict()
-    db.session.refresh(comment)
+@transactional
+def create_comment(user, card_id, payload):
+    card = load_card(card_id)
+    board = load_board(card.board_id)
+    authorize(user, "comment:create", board)
+    data = parse(CommentCreateSchema, payload)
+    comment = Comment(card_id=card.id, content=data["content"], created_by=user.id)
+    db.session.add(comment)
+    db.session.flush()
+    if card.assignee_id is not None:
+        notify(
+            [card.assignee_id],
+            type="comment_added",
+            message=f'New comment on the card "{card.title}".',
+            board_id=board.id,
+            actor_id=user.id,
+        )
     return comment
 
 
-def delete_comment(user: User, access: CommentAccess) -> dict[str, Any]:
-    comment = access.comment
-    comment.soft_delete()
-    commit_or_conflict()
-    return {"id": comment.id}
+def _load_comment_for_change(user, comment_id):
+    """Returns (comment, board) and enforces the comment:modify rule."""
+    comment = db.session.get(Comment, comment_id)
+    if comment is None:
+        raise NotFound()
+    card = load_card(comment.card_id)
+    board = load_board(card.board_id)
+    authorize(user, "comment:modify", board, comment)
+    return comment
+
+
+@transactional
+def update_comment(user, comment_id, payload):
+    comment = _load_comment_for_change(user, comment_id)
+    data = parse(CommentUpdateSchema, payload)
+    comment.content = data["content"]
+    return comment
+
+
+@transactional
+def delete_comment(user, comment_id):
+    comment = _load_comment_for_change(user, comment_id)
+    db.session.delete(comment)

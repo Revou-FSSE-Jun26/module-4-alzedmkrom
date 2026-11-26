@@ -1,32 +1,23 @@
-from typing import Any
-
 from sqlalchemy import func, select
 
-from app.common.db import commit_or_conflict
-from app.common.errors import Conflict
+from app.blueprints.users.schema import UserUpdateSchema
+from app.errors import Conflict
 from app.extensions import db
-from app.models.user import User
+from app.models import User
+from app.schemas import parse
+from app.transactions import transactional
 
 
-def get_profile(user: User) -> User:
-    return user
-
-
-def update_profile(user: User, data: dict[str, Any]) -> User:
+@transactional
+def update_me(user, payload):
+    data = parse(UserUpdateSchema, payload)
     if "email" in data:
-        email = data["email"].strip().lower()
-        other = db.session.execute(
-            select(User.id).where(
-                func.lower(User.email) == email, User.id != user.id
-            )
-        ).first()
-        if other is not None:
-            raise Conflict("Email already registered")
-        user.email = email
+        taken = db.session.scalar(
+            select(User.id).where(func.lower(User.email) == data["email"], User.id != user.id)
+        )
+        if taken is not None:
+            raise Conflict("Email is already registered.", code="EMAIL_TAKEN")
+        user.email = data["email"]
     if "name" in data:
         user.name = data["name"]
-    # updated_at is set by the database trigger. A concurrent loser hits
-    # uq_users_email_lower and becomes 409 here.
-    commit_or_conflict()
-    db.session.refresh(user)
     return user

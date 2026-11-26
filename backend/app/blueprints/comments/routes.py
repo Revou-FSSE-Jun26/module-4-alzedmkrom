@@ -1,83 +1,35 @@
-from flask import Blueprint
+from flask import Blueprint, jsonify, request
 
-from app.common.access import (
-    get_card_for_user,
-    get_comment_for_user,
-    require_comment_owner,
-)
-from app.common.auth import current_user, protected
-from app.common.envelope import ok
-from app.common.openapi import document
-from app.common.schemas import IdOutSchema
-from app.common.validation import load_body
-
-from . import service
-from .schema import CommentOutSchema, CommentSchema
+from app.auth_utils import auth_optional, auth_required, current_user
+from app.blueprints.comments import service
+from app.blueprints.comments.schema import CommentSchema
 
 bp = Blueprint("comments", __name__)
 
 
-@bp.post("/api/cards/<card_id>/comments")
-@document(
-    summary="Add a comment to a card",
-    request=CommentSchema,
-    success=CommentOutSchema,
-    status=201,
-    conflict=True,
-)
-@protected
-def create_comment(card_id):
-    user = current_user()
-    access = get_card_for_user(user.id, card_id)
-    data = load_body(CommentSchema())
-    comment = service.create_comment(user, access, data)
-    return ok(CommentOutSchema().dump(comment), 201)
-
-
-@bp.get("/api/cards/<card_id>/comments")
-@document(
-    summary="List comments on a card",
-    success=CommentOutSchema,
-    many=True,
-    status=200,
-)
-@protected
+@bp.get("/api/cards/<uuid:card_id>/comments")
+@auth_optional
 def list_comments(card_id):
-    user = current_user()
-    access = get_card_for_user(user.id, card_id)
-    comments = service.list_comments(access)
-    return ok(CommentOutSchema(many=True).dump(comments))
+    comments = service.list_comments(current_user(), card_id)
+    return jsonify({"items": [CommentSchema().dump(c) for c in comments]}), 200
 
 
-@bp.patch("/api/comments/<comment_id>")
-@document(
-    summary="Edit a comment (author only)",
-    request=CommentSchema,
-    success=CommentOutSchema,
-    status=200,
-    conflict=True,
-)
-@protected
+@bp.post("/api/cards/<uuid:card_id>/comments")
+@auth_required
+def create_comment(card_id):
+    comment = service.create_comment(current_user(), card_id, request.get_json(silent=True))
+    return jsonify(CommentSchema().dump(comment)), 201
+
+
+@bp.patch("/api/comments/<uuid:comment_id>")
+@auth_required
 def update_comment(comment_id):
-    user = current_user()
-    access = get_comment_for_user(user.id, comment_id)
-    require_comment_owner(access, user.id)
-    data = load_body(CommentSchema())
-    comment = service.update_comment(user, access, data)
-    return ok(CommentOutSchema().dump(comment))
+    comment = service.update_comment(current_user(), comment_id, request.get_json(silent=True))
+    return jsonify(CommentSchema().dump(comment)), 200
 
 
-@bp.delete("/api/comments/<comment_id>")
-@document(
-    summary="Delete a comment (author only)",
-    success=IdOutSchema,
-    status=200,
-    conflict=True,
-)
-@protected
+@bp.delete("/api/comments/<uuid:comment_id>")
+@auth_required
 def delete_comment(comment_id):
-    user = current_user()
-    access = get_comment_for_user(user.id, comment_id)
-    require_comment_owner(access, user.id)
-    result = service.delete_comment(user, access)
-    return ok(IdOutSchema().dump(result))
+    service.delete_comment(current_user(), comment_id)
+    return "", 204

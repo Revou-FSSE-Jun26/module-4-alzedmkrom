@@ -1,44 +1,34 @@
-from flask import Blueprint
+from flask import Blueprint, jsonify, request
 
-from app.common.auth import current_user, protected
-from app.common.envelope import ok
-from app.common.openapi import document
-from app.common.validation import load_query
-
-from . import service
-from .schema import (
-    NotificationListQuerySchema,
-    NotificationOutSchema,
-    NotificationPageOutSchema,
-)
+from app.auth_utils import auth_required, current_user
+from app.blueprints.notifications import service
+from app.blueprints.notifications.schema import NotificationSchema
+from app.schemas import PaginationQuerySchema, parse
 
 bp = Blueprint("notifications", __name__)
 
 
 @bp.get("/api/notifications")
-@document(
-    summary="List my notifications (paginated, newest first)",
-    query=NotificationListQuerySchema,
-    success=NotificationPageOutSchema,
-    status=200,
-)
-@protected
+@auth_required
 def list_notifications():
-    user = current_user()
-    params = load_query(NotificationListQuerySchema())
-    page = service.list_notifications(user, params["page"], params["per_page"])
-    return ok(NotificationPageOutSchema().dump(page))
+    args = parse(PaginationQuerySchema, request.args.to_dict())
+    items, total, pages, unread = service.list_notifications(
+        current_user(), args["page"], args["per_page"]
+    )
+    return jsonify(
+        {
+            "items": [NotificationSchema().dump(n) for n in items],
+            "page": args["page"],
+            "per_page": args["per_page"],
+            "total": total,
+            "pages": pages,
+            "unread_count": unread,
+        }
+    ), 200
 
 
-@bp.patch("/api/notifications/<notification_id>/read")
-@document(
-    summary="Mark one of my notifications as read",
-    success=NotificationOutSchema,
-    status=200,
-    conflict=True,
-)
-@protected
+@bp.patch("/api/notifications/<uuid:notification_id>/read")
+@auth_required
 def mark_read(notification_id):
-    user = current_user()
-    notification = service.mark_read(user, notification_id)
-    return ok(NotificationOutSchema().dump(notification))
+    notification = service.mark_read(current_user(), notification_id)
+    return jsonify(NotificationSchema().dump(notification)), 200

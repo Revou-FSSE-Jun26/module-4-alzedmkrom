@@ -1,235 +1,206 @@
-from typing import Any
-from uuid import UUID
+"""Board listing, detail, edits, membership (BE-AZ-07, BE-SVC-02..04)."""
+from collections import defaultdict
 
-from sqlalchemy import func, select, update
+from sqlalchemy import and_, func, select, update
+from sqlalchemy.orm import selectinload
 
-from app.common.access import BoardAccess
-from app.common.constants import ActivityAction, NotificationType, Role
-from app.common.db import commit_or_conflict, lock_board
-from app.common.errors import Conflict, NotFound
-from app.common.events import (
-    create_notification,
-    fit_message,
-    log_activity,
-    message_member_added,
+from app.blueprints.boards.schema import (
+    BoardCreateSchema,
+    BoardListQuerySchema,
+    BoardSchema,
+    BoardUpdateSchema,
+    MemberAddSchema,
+    MemberSchema,
+    MemberUpdateSchema,
 )
+from app.blueprints.cards.schema import CardSchema
+from app.blueprints.columns.schema import ColumnSchema
+from app.blueprints.notifications.service import notify
+from app.errors import Conflict, NotFound, Unauthenticated, ValidationFailed
 from app.extensions import db
-from app.models import queries
-from app.models.board import Board, BoardMember
-from app.models.card import Card
-from app.models.column import BoardColumn
-from app.models.user import User
-
-_CARD_FIELDS = (
-    "id",
-    "title",
-    "description",
-    "assignee_id",
-    "created_by",
-    "order",
-    "completed_at",
-    "created_at",
-    "updated_at",
-)
-_COLUMN_FIELDS = ("id", "board_id", "title", "order", "created_at", "updated_at")
+from app.models import Board, BoardColumn, BoardMember, Card, User
+from app.pagination import paginate
+from app.permissions import ADMIN, authorize, board_admin_ids, load_board, viewer_roles
+from app.schemas import parse
+from app.transactions import lock_board, transactional
 
 
-def _board_dict(board: Board, role: str) -> dict[str, Any]:
+def list_boards(user, payload):
+    args = parse(BoardListQuerySchema, payload)
+    scope = args.get("scope") or ("mine" if user else "public")
+    if scope == "mine" and user is None:
+        raise Unauthenticated()
+    query = Board.query
+    if scope == "mine":
+        query = query.join(
+            BoardMember, and_(BoardMember.board_id == Board.id, BoardMember.user_id == user.id)
+        )
+    else:
+        query = query.filter(Board.is_public.is_(True))
+    query = query.order_by(Board.created_at.desc(), Board.id)
+    boards, total, pages = paginate(query, args["page"], args["per_page"])
+    roles = viewer_roles(user, [b.id for b in boards])
+    items = [{**BoardSchema().dump(b), "my_role": roles[b.id]} for b in boards]
     return {
-        "id": board.id,
-        "name": board.name,
-        "owner_id": board.owner_id,
-        "role": role,
-        "created_at": board.created_at,
-        "updated_at": board.updated_at,
+        "items": items,
+        "page": args["page"],
+        "per_page": args["per_page"],
+        "total": total,
+        "pages": pages,
     }
 
 
-def create_board(user: User, data: dict[str, Any]) -> dict[str, Any]:
-    """Board and the creator's admin membership in one transaction (Req 4.5)."""
-    board = Board(name=data["name"], owner_id=user.id)
+@transactional
+def create_board(user, payload):
+    data = parse(BoardCreateSchema, payload)
+    board = Board(name=data["name"], is_public=data["is_public"], created_by=user.id)
     db.session.add(board)
     db.session.flush()
     db.session.add(
-        BoardMember(board_id=board.id, user_id=user.id, role=Role.ADMIN.value)
+        BoardMember(board_id=board.id, user_id=user.id, role=ADMIN, added_by=user.id)
     )
-    commit_or_conflict()
-    db.session.refresh(board)
-    return _board_dict(board, Role.ADMIN.value)
-
-
-def list_boards(user: User) -> list[dict[str, Any]]:
-    rows = db.session.execute(
-        select(Board, BoardMember.role)
-        .join(
-            BoardMember,
-            (BoardMember.board_id == Board.id) & (BoardMember.user_id == user.id),
-        )
-        .where(Board.deleted_at.is_(None))
-        .order_by(Board.updated_at.desc(), Board.id.asc())
-    ).all()
-    return [_board_dict(board, role) for board, role in rows]
-
-
-def get_board_detail(access: BoardAccess) -> dict[str, Any]:
-    """Three queries through queries.load_board, no lazy relationships (Req 22)."""
-    board, columns, cards = queries.load_board(access.board_id)
-    if board is None:  # pragma: no cover - access helper already found the board
-        raise NotFound()
-    cards_by_column: dict[UUID, list[dict[str, Any]]] = {}
-    for card in cards:
-        cards_by_column.setdefault(card.column_id, []).append(
-            {name: getattr(card, name) for name in _CARD_FIELDS}
-        )
-    detail = _board_dict(board, access.role)
-    detail["columns"] = [
-        {
-            **{name: getattr(column, name) for name in _COLUMN_FIELDS},
-            "cards": cards_by_column.get(column.id, []),
-        }
-        for column in columns
-    ]
-    return detail
-
-
-def _load_board(access: BoardAccess) -> Board:
-    board = db.session.get(Board, access.board_id)
-    if board is None or board.deleted_at is not None:  # pragma: no cover
-        raise NotFound()
     return board
 
 
-def rename_board(access: BoardAccess, data: dict[str, Any]) -> dict[str, Any]:
-    board = _load_board(access)
-    board.name = data["name"]
-    commit_or_conflict()
-    db.session.refresh(board)
-    return _board_dict(board, access.role)
-
-
-def delete_board(access: BoardAccess) -> dict[str, Any]:
-    """Soft-delete the board only; columns and cards stay untouched (Req 5.5)."""
-    board = _load_board(access)
-    board.soft_delete()
-    commit_or_conflict()
-    return {"id": board.id}
-
-def _member_dict(member: BoardMember, user: User) -> dict[str, Any]:
-    return {
-        "user_id": user.id,
-        "name": user.name,
-        "email": user.email,
-        "role": member.role,
-        "created_at": member.created_at,
+def get_board(user, board_id):
+    """Board with columns and live cards, in a fixed number of queries (BE-SVC-02)."""
+    board = load_board(board_id)
+    role = authorize(user, "board:read", board)
+    columns = (
+        BoardColumn.query.filter(BoardColumn.board_id == board.id)
+        .order_by(BoardColumn.order, BoardColumn.id)
+        .all()
+    )
+    cards = (
+        Card.active()
+        .options(selectinload(Card.assignee))
+        .filter(Card.board_id == board.id)
+        .order_by(Card.column_id, Card.order, Card.id)
+        .all()
+    )
+    cards_by_column = defaultdict(list)
+    for card in cards:
+        cards_by_column[card.column_id].append(CardSchema().dump(card))
+    payload = {**BoardSchema().dump(board), "my_role": role}
+    payload["columns"] = {
+        "items": [
+            {
+                **ColumnSchema().dump(column),
+                "cards": {"items": cards_by_column.get(column.id, [])},
+            }
+            for column in columns
+        ]
     }
+    return payload
 
 
-def list_members(access: BoardAccess) -> list[dict[str, Any]]:
+@transactional
+def update_board(user, board_id, payload):
+    board = load_board(board_id)
+    authorize(user, "board:update", board)
+    data = parse(BoardUpdateSchema, payload)
+    for key, value in data.items():
+        setattr(board, key, value)
+    return board
+
+
+@transactional
+def delete_board(user, board_id):
+    board = load_board(board_id)
+    authorize(user, "board:delete", board)
+    db.session.delete(board)
+
+
+def list_members(user, board_id):
+    board = load_board(board_id)
+    role = authorize(user, "board:members:read", board)
     rows = db.session.execute(
         select(BoardMember, User)
         .join(User, User.id == BoardMember.user_id)
-        .where(BoardMember.board_id == access.board_id)
-        .order_by(BoardMember.created_at.asc(), BoardMember.user_id.asc())
+        .where(BoardMember.board_id == board.id)
+        .order_by(User.name, User.id)
     ).all()
-    return [_member_dict(member, user) for member, user in rows]
+    return [member_payload(member, person, role == ADMIN) for member, person in rows]
 
 
-def _get_membership(board_id: UUID, user_id: UUID) -> tuple[BoardMember, User]:
-    row = db.session.execute(
-        select(BoardMember, User)
-        .join(User, User.id == BoardMember.user_id)
-        .where(BoardMember.board_id == board_id, BoardMember.user_id == user_id)
-    ).first()
-    if row is None:
-        raise NotFound()
-    return row[0], row[1]
-
-
-def _admin_count(board_id: UUID) -> int:
-    return db.session.execute(
-        select(func.count())
-        .select_from(BoardMember)
-        .where(
-            BoardMember.board_id == board_id,
-            BoardMember.role == Role.ADMIN.value,
-        )
-    ).scalar_one()
-
-
-def add_member(access: BoardAccess, user: User, data: dict[str, Any]) -> dict[str, Any]:
-    board = _load_board(access)
-    lock_board(access.board_id)
-    target = db.session.execute(
-        select(User).where(func.lower(User.email) == data["email"].lower())
-    ).scalar_one_or_none()
-    if target is None:
-        raise NotFound()
-    exists = db.session.execute(
-        select(BoardMember.user_id).where(
-            BoardMember.board_id == access.board_id,
-            BoardMember.user_id == target.id,
-        )
-    ).first()
-    if exists is not None:
-        raise Conflict("User is already a member of this board")
-    member = BoardMember(
-        board_id=access.board_id,
-        user_id=target.id,
-        role=data.get("role", Role.MEMBER.value),
+def member_payload(member, person, viewer_is_admin):
+    """Email is visible to Admins of the board only (BE-VAL-04)."""
+    return MemberSchema().dump(
+        {
+            "user_id": person.id,
+            "name": person.name,
+            "email": person.email if viewer_is_admin else None,
+            "role": member.role,
+            "created_at": member.created_at,
+        }
     )
+
+
+def _lock_admins(board_id):
+    """DB-MEM-02: lock the admin rows before counting them."""
+    return db.session.scalars(
+        select(BoardMember)
+        .where(BoardMember.board_id == board_id, BoardMember.role == ADMIN)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).all()
+
+
+@transactional
+def add_member(user, board_id, payload):
+    board = load_board(board_id)
+    authorize(user, "board:members:manage", board)
+    data = parse(MemberAddSchema, payload)
+    target = db.session.scalar(select(User).where(func.lower(User.email) == data["email"]))
+    if target is None:
+        raise ValidationFailed(details={"email": ["No user with this email."]})
+    if db.session.get(BoardMember, (board.id, target.id)) is not None:
+        raise Conflict("User is already a member of this board.", code="ALREADY_MEMBER")
+    member = BoardMember(board_id=board.id, user_id=target.id, role=data["role"], added_by=user.id)
     db.session.add(member)
     db.session.flush()
-    log_activity(access.board_id, user.id, ActivityAction.MEMBER_ADDED)
-    create_notification(
-        target.id,
-        access.board_id,
-        NotificationType.MEMBER_ADDED,
-        fit_message(message_member_added, board.name),
+    notify(
+        [target.id, *board_admin_ids(board.id)],
+        type="member_added",
+        message=f'You were added to the board "{board.name}" as {data["role"]}.',
+        board_id=board.id,
+        actor_id=user.id,
     )
-    commit_or_conflict()
-    db.session.refresh(member)
-    return _member_dict(member, target)
+    return member, target
 
 
-def change_member_role(
-    access: BoardAccess, user: User, target_id: UUID, data: dict[str, Any]
-) -> dict[str, Any]:
-    lock_board(access.board_id)
-    member, target = _get_membership(access.board_id, target_id)
-    new_role = data["role"]
-    if (
-        member.role == Role.ADMIN.value
-        and new_role != Role.ADMIN.value
-        and _admin_count(access.board_id) <= 1
-    ):
-        raise Conflict("Board must keep at least one admin")
-    member.role = new_role
-    log_activity(access.board_id, user.id, ActivityAction.MEMBER_ROLE_CHANGED)
-    commit_or_conflict()
-    db.session.refresh(member)
-    return _member_dict(member, target)
+@transactional
+def update_member(user, board_id, target_user_id, payload):
+    board = load_board(board_id)
+    authorize(user, "board:members:manage", board)
+    data = parse(MemberUpdateSchema, payload)
+    admins = _lock_admins(board.id)
+    member = db.session.get(BoardMember, (board.id, target_user_id), populate_existing=True)
+    if member is None:
+        raise NotFound("Member not found.")
+    if member.role == ADMIN and data["role"] != ADMIN and len(admins) <= 1:
+        raise Conflict("A board must keep at least one Admin.", code="LAST_ADMIN")
+    member.role = data["role"]
+    person = db.session.get(User, target_user_id)
+    return member, person
 
 
-def remove_member(access: BoardAccess, user: User, target_id: UUID) -> dict[str, Any]:
-    lock_board(access.board_id)
-    member, _target = _get_membership(access.board_id, target_id)
-    if member.role == Role.ADMIN.value and _admin_count(access.board_id) <= 1:
-        raise Conflict("Board must keep at least one admin")
-    column_ids = select(BoardColumn.id).where(
-        BoardColumn.board_id == access.board_id,
-        BoardColumn.deleted_at.is_(None),
-    )
+@transactional
+def remove_member(user, board_id, target_user_id):
+    board = load_board(board_id)
+    authorize(user, "board:members:manage", board)
+    admins = _lock_admins(board.id)
+    member = db.session.get(BoardMember, (board.id, target_user_id), populate_existing=True)
+    if member is None:
+        raise NotFound("Member not found.")
+    if member.role == ADMIN and len(admins) <= 1:
+        raise Conflict("A board must keep at least one Admin.", code="LAST_ADMIN")
     db.session.execute(
         update(Card)
-        .where(
-            Card.assignee_id == target_id,
-            Card.deleted_at.is_(None),
-            Card.column_id.in_(column_ids),
-        )
+        .where(Card.board_id == board.id, Card.assignee_id == target_user_id)
         .values(assignee_id=None)
         .execution_options(synchronize_session=False)
     )
     db.session.delete(member)
-    log_activity(access.board_id, user.id, ActivityAction.MEMBER_REMOVED)
-    commit_or_conflict()
-    return {"user_id": target_id}
+
+

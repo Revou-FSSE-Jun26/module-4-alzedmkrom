@@ -1,81 +1,42 @@
-from flask import Blueprint
+from flask import Blueprint, jsonify, request
 
-from app.common.access import get_board_for_user, get_column_for_user
-from app.common.auth import current_user, protected
-from app.common.envelope import ok
-from app.common.openapi import document
-from app.common.schemas import ColumnOutSchema, IdOutSchema
-from app.common.validation import load_body
-
-from . import service
-from .schema import (
-    ColumnCreateSchema,
-    ColumnReorderOutSchema,
-    ColumnReorderSchema,
-    ColumnUpdateSchema,
-)
+from app.auth_utils import auth_required, current_user
+from app.blueprints.columns import service
+from app.blueprints.columns.schema import ColumnSchema
 
 bp = Blueprint("columns", __name__)
 
 
-@bp.post("/api/boards/<board_id>/columns")
-@document(
-    summary="Create a column on a board",
-    request=ColumnCreateSchema,
-    success=ColumnOutSchema,
-    status=201,
-    conflict=True,
-)
-@protected
+@bp.post("/api/boards/<uuid:board_id>/columns")
+@auth_required
 def create_column(board_id):
-    user = current_user()
-    access = get_board_for_user(user.id, board_id)
-    data = load_body(ColumnCreateSchema())
-    column = service.create_column(access, user, data)
-    return ok(ColumnOutSchema().dump(column), 201)
+    column = service.create_column(current_user(), board_id, request.get_json(silent=True))
+    return jsonify(ColumnSchema().dump(column)), 201
 
 
-@bp.patch("/api/columns/<column_id>")
-@document(
-    summary="Rename a column",
-    request=ColumnUpdateSchema,
-    success=ColumnOutSchema,
-    status=200,
-    conflict=True,
-)
-@protected
-def rename_column(column_id):
-    access = get_column_for_user(current_user().id, column_id)
-    data = load_body(ColumnUpdateSchema())
-    column = service.rename_column(access, data)
-    return ok(ColumnOutSchema().dump(column))
+@bp.patch("/api/boards/<uuid:board_id>/columns/reorder")
+@auth_required
+def reorder_column(board_id):
+    column, placement = service.reorder_column(
+        current_user(), board_id, request.get_json(silent=True)
+    )
+    body = {
+        **ColumnSchema().dump(column),
+        "rebalanced": placement.rebalanced,
+        "siblings": placement.siblings(),
+    }
+    return jsonify(body), 200
 
 
-@bp.delete("/api/columns/<column_id>")
-@document(
-    summary="Delete a column (its cards are left untouched)",
-    success=IdOutSchema,
-    status=200,
-    conflict=True,
-)
-@protected
+@bp.patch("/api/columns/<uuid:column_id>")
+@auth_required
+def update_column(column_id):
+    column = service.update_column(current_user(), column_id, request.get_json(silent=True))
+    return jsonify(ColumnSchema().dump(column)), 200
+
+
+@bp.delete("/api/columns/<uuid:column_id>")
+@auth_required
 def delete_column(column_id):
-    access = get_column_for_user(current_user().id, column_id)
-    result = service.delete_column(access)
-    return ok(IdOutSchema().dump(result))
-
-
-@bp.patch("/api/boards/<board_id>/columns/reorder")
-@document(
-    summary="Move a column to a new order position",
-    request=ColumnReorderSchema,
-    success=ColumnReorderOutSchema,
-    status=200,
-    conflict=True,
-)
-@protected
-def reorder_columns(board_id):
-    access = get_board_for_user(current_user().id, board_id)
-    data = load_body(ColumnReorderSchema())
-    result = service.reorder_columns(access, data)
-    return ok(ColumnReorderOutSchema().dump(result))
+    service.delete_column(current_user(), column_id)
+    return "", 204

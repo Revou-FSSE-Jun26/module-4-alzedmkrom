@@ -1,42 +1,41 @@
-from typing import Any
-
+"""Registration and login (BE-AUTH-01, BE-AUTH-02)."""
 from flask import current_app
 from flask_jwt_extended import create_access_token
 from sqlalchemy import func, select
+from werkzeug.security import check_password_hash, generate_password_hash
 
-from app.common.auth import hash_password, verify_password
-from app.common.db import commit_or_conflict
-from app.common.errors import Conflict, Unauthorized
+from app.blueprints.auth.schema import LoginSchema, RegisterSchema
+from app.errors import Conflict, Unauthenticated
 from app.extensions import db
-from app.models.user import User
+from app.models import User
+from app.schemas import parse
+from app.transactions import transactional
 
 
-def register_user(data: dict[str, Any]) -> User:
-    email = data["email"]
-    exists = db.session.execute(
-        select(User.id).where(func.lower(User.email) == email.lower())
-    ).first()
-    if exists is not None:
-        raise Conflict("Email already registered")
+@transactional
+def register(payload):
+    data = parse(RegisterSchema, payload)
+    taken = db.session.scalar(select(User.id).where(func.lower(User.email) == data["email"]))
+    if taken is not None:
+        raise Conflict("Email is already registered.", code="EMAIL_TAKEN")
     user = User(
         name=data["name"],
-        email=email,
-        password_hash=hash_password(data["password"]),
+        email=data["email"],
+        password_hash=generate_password_hash(data["password"]),
     )
     db.session.add(user)
-    # A concurrent loser hits uq_users_email_lower and becomes 409 here.
-    commit_or_conflict()
     return user
 
 
-def login(data: dict[str, Any]) -> tuple[User, str, int]:
-    email = data["email"].strip().lower()
-    user = db.session.execute(
-        select(User).where(func.lower(User.email) == email)
-    ).scalar_one_or_none()
-    if not verify_password(user.password_hash if user else None, data["password"]):
-        raise Unauthorized("Invalid email or password")
-    assert user is not None
+def login(payload):
+    data = parse(LoginSchema, payload)
+    user = db.session.scalar(select(User).where(func.lower(User.email) == data["email"]))
+    if user is None or not check_password_hash(user.password_hash, data["password"]):
+        raise Unauthenticated("Invalid email or password.")
     token = create_access_token(identity=str(user.id))
-    expires_in = int(current_app.config["JWT_ACCESS_TOKEN_EXPIRES"].total_seconds())
-    return user, token, expires_in
+    lifetime = current_app.config["JWT_ACCESS_TOKEN_EXPIRES"]
+    return {
+        "access_token": token,
+        "token_type": "Bearer",
+        "expires_in": int(lifetime.total_seconds()),
+    }

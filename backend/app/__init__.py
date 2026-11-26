@@ -1,28 +1,54 @@
-"""Flask application factory."""
+"""Flask application factory (BE-STR-01: blueprints are registered only here)."""
 import os
 from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 
-from app.blueprints import register_blueprints
-from app.common.auth import register_jwt_callbacks
-from app.common.errors import register_error_handlers
+from app.auth_utils import register_jwt_callbacks
 from app.config import compile_origins, load_settings
 from app.db_config import engine_options, normalize_database_url, verify_connection
+from app.errors import register_error_handlers
 from app.extensions import db, jwt, migrate
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
 def skip_empty_revision(context, revision, directives):
-    """Req 10.5. Write no migration file when autogenerate finds no changes."""
+    """Write no migration file when autogenerate finds no changes."""
     if getattr(context.config.cmd_opts, "autogenerate", False):
         script = directives[0]
         if script.upgrade_ops.is_empty():
             directives[:] = []
+
+
+def health():
+    return jsonify({"status": "ok"}), 200
+
+
+def register_blueprints(app: Flask) -> None:
+    from app.blueprints.analytics.routes import bp as analytics_bp
+    from app.blueprints.auth.routes import bp as auth_bp
+    from app.blueprints.boards.routes import bp as boards_bp
+    from app.blueprints.cards.routes import bp as cards_bp
+    from app.blueprints.columns.routes import bp as columns_bp
+    from app.blueprints.comments.routes import bp as comments_bp
+    from app.blueprints.notifications.routes import bp as notifications_bp
+    from app.blueprints.users.routes import bp as users_bp
+
+    for blueprint in (
+        auth_bp,
+        users_bp,
+        boards_bp,
+        columns_bp,
+        cards_bp,
+        comments_bp,
+        notifications_bp,
+        analytics_bp,
+    ):
+        app.register_blueprint(blueprint)
 
 
 def create_app(verify_db: bool = True) -> Flask:
@@ -35,9 +61,12 @@ def create_app(verify_db: bool = True) -> Flask:
         SQLALCHEMY_ENGINE_OPTIONS={**engine_options(), "hide_parameters": True},
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         JWT_SECRET_KEY=settings.jwt_secret_key,
-        JWT_ACCESS_TOKEN_EXPIRES=timedelta(seconds=settings.jwt_access_token_expires),
+        JWT_ACCESS_TOKEN_EXPIRES=timedelta(minutes=settings.jwt_expires_minutes),
         MAX_CONTENT_LENGTH=1_048_576,
     )
+    if settings.secret_key:
+        app.config["SECRET_KEY"] = settings.secret_key
+
     db.init_app(app)
     migrate.init_app(
         app,
@@ -62,13 +91,12 @@ def create_app(verify_db: bool = True) -> Flask:
         },
     )
     register_error_handlers(app)
+
     from app import models  # noqa: F401  (register tables)
 
     register_blueprints(app)
-    if settings.swagger_enabled:
-        from app.common.openapi import register_docs
+    app.add_url_rule("/api/health", endpoint="health", view_func=health, methods=["GET"])
 
-        register_docs(app)
     from app.seed import seed_command
 
     app.cli.add_command(seed_command)

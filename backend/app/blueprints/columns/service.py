@@ -1,84 +1,124 @@
-from typing import Any
+"""Column create, edit, reorder and delete (BE-AZ-04, BE-ORD-02, BE-ORD-03, DB-DON-01)."""
+from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 
-from app.common.access import BoardAccess, ColumnAccess
-from app.common.constants import ActivityAction
-from app.common.db import commit_or_conflict, lock_board
-from app.common.errors import NotFound
-from app.common.events import log_activity
-from app.common.ordering import next_order, plan_move
+from app.blueprints.columns.schema import ColumnCreateSchema, ColumnReorderSchema, ColumnUpdateSchema
+from app.errors import Conflict, NotFound
 from app.extensions import db
-from app.models.column import BoardColumn
-from app.models.user import User
-
-_COLUMN_FIELDS = ("id", "board_id", "title", "order", "created_at", "updated_at")
-
-
-def _column_dict(column: BoardColumn) -> dict[str, Any]:
-    return {name: getattr(column, name) for name in _COLUMN_FIELDS}
+from app.models import BoardColumn, Card
+from app.ordering import end_order, plan_order
+from app.permissions import MEMBER, authorize, load_board, load_column
+from app.schemas import parse
+from app.transactions import lock_board, transactional
 
 
-def _live_columns(board_id) -> list[BoardColumn]:
-    return list(
-        db.session.execute(
-            select(BoardColumn)
-            .where(BoardColumn.board_id == board_id, BoardColumn.deleted_at.is_(None))
-            .order_by(BoardColumn.order.asc(), BoardColumn.id.asc())
+@transactional
+def create_column(user, board_id, payload):
+    board = load_board(board_id)
+    authorize(user, "column:create", board)
+    data = parse(ColumnCreateSchema, payload)
+    lock_board(board.id)
+    last = db.session.scalar(
+        select(func.max(BoardColumn.order)).where(BoardColumn.board_id == board.id)
+    )
+    column = BoardColumn(
+        board_id=board.id,
+        name=data["name"],
+        order=end_order(last),
+        is_done=False,
+        created_by=user.id,
+    )
+    db.session.add(column)
+    return column
+
+
+@transactional
+def update_column(user, column_id, payload):
+    column = load_column(column_id)
+    board = load_board(column.board_id)
+    authorize(user, "column:update", board)
+    data = parse(ColumnUpdateSchema, payload)
+    if "is_done" in data:
+        authorize(user, "column:set_done", board)
+        _set_done(column, data["is_done"])
+    if "name" in data:
+        column.name = data["name"]
+    return column
+
+
+def _set_done(column, value):
+    """Keep DB-DON-01: one done column per board, and completed_at set only for cards in it."""
+    if value == column.is_done:
+        return
+    if value:
+        lock_board(column.board_id)
+        other = db.session.scalar(
+            select(BoardColumn.id).where(
+                BoardColumn.board_id == column.board_id,
+                BoardColumn.is_done.is_(True),
+                BoardColumn.id != column.id,
+            )
         )
-        .scalars()
+        if other is not None:
+            raise Conflict("This board already has a done column.")
+        column.is_done = True
+        # Includes soft-deleted cards so the completed_at invariant holds for every row.
+        db.session.execute(
+            update(Card)
+            .where(Card.column_id == column.id, Card.completed_at.is_(None))
+            .values(completed_at=datetime.now(timezone.utc))
+            .execution_options(synchronize_session=False)
+        )
+    else:
+        column.is_done = False
+        db.session.execute(
+            update(Card)
+            .where(Card.column_id == column.id)
+            .values(completed_at=None)
+            .execution_options(synchronize_session=False)
+        )
+
+
+@transactional
+def reorder_column(user, board_id, payload):
+    board = load_board(board_id)
+    authorize(user, "column:update", board)
+    data = parse(ColumnReorderSchema, payload)
+    column = db.session.get(BoardColumn, data["column_id"])
+    if column is None or column.board_id != board.id:
+        raise NotFound("Column not found on this board.")
+    lock_board(board.id)
+    columns = (
+        BoardColumn.query.filter(BoardColumn.board_id == board.id)
+        .order_by(BoardColumn.order, BoardColumn.id)
         .all()
     )
+    placement = plan_order([(c.id, c.order) for c in columns], column.id, data["order"])
+    by_id = {c.id: c for c in columns}
+    for column_key, new_order in placement.orders.items():
+        by_id[column_key].order = new_order
+    return column, placement
 
 
-def create_column(
-    access: BoardAccess, user: User, data: dict[str, Any]
-) -> dict[str, Any]:
-    lock_board(access.board_id)
-    order = next_order(column.order for column in _live_columns(access.board_id))
-    column = BoardColumn(board_id=access.board_id, title=data["title"], order=order)
-    db.session.add(column)
-    db.session.flush()
-    log_activity(access.board_id, user.id, ActivityAction.COLUMN_CREATED)
-    commit_or_conflict()
-    db.session.refresh(column)
-    return _column_dict(column)
-
-
-def rename_column(access: ColumnAccess, data: dict[str, Any]) -> dict[str, Any]:
-    column = access.column
-    column.title = data["title"]
-    commit_or_conflict()
-    db.session.refresh(column)
-    return _column_dict(column)
-
-
-def delete_column(access: ColumnAccess) -> dict[str, Any]:
-    """Soft-delete the column only; its cards stay untouched (Req 7.4)."""
-    column = access.column
-    column.soft_delete()
-    commit_or_conflict()
-    return {"id": column.id}
-
-
-def reorder_columns(access: BoardAccess, data: dict[str, Any]) -> dict[str, Any]:
-    lock_board(access.board_id)
-    columns = _live_columns(access.board_id)
-    moved = next((c for c in columns if c.id == data["column_id"]), None)
-    if moved is None:
-        raise NotFound()
-    plan = plan_move(
-        [(c.id, c.order) for c in columns if c.id != moved.id],
-        moved.id,
-        data["order"],
-    )
-    for column in columns:
-        new_order = plan.orders.get(column.id)
-        if new_order is not None and new_order != column.order:
-            column.order = new_order
-    commit_or_conflict()
-    ordered = sorted(_live_columns(access.board_id), key=lambda c: (c.order, c.id))
-    return {
-        "columns": [_column_dict(c) for c in ordered],
-        "rebalanced": plan.rebalanced,
-    }
+@transactional
+def delete_column(user, column_id):
+    column = load_column(column_id)
+    board = load_board(column.board_id)
+    role = authorize(user, "column:delete", board, column)
+    if role == MEMBER:
+        foreign = (
+            Card.active()
+            .filter(
+                Card.column_id == column.id,
+                (Card.created_by.is_(None)) | (Card.created_by != user.id),
+            )
+            .count()
+        )
+        if foreign:
+            raise Conflict(
+                "The column contains cards created by other users.",
+                code="COLUMN_HAS_FOREIGN_WORK",
+                details={"cards": foreign},
+            )
+    db.session.delete(column)

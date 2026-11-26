@@ -1,23 +1,19 @@
-from marshmallow import Schema, ValidationError, fields
-from marshmallow.validate import Length
+from marshmallow import Schema, fields, validate
 
-from app.common.schemas import AuthorOutSchema
-from app.common.validation import LenientSchema, Text, UTCDateTime
+from app.schemas import COMMENT_MAX, PublicUserSchema, StrictSchema, Text, UTCDateTime
 
 
-def has_non_whitespace(value: str) -> None:
-    if not any(not ch.isspace() for ch in value):
-        raise ValidationError("Must contain a non-whitespace character.")
+class CommentCreateSchema(StrictSchema):
+    content = Text(required=True, validate=validate.Length(min=1, max=COMMENT_MAX))
 
 
-class CommentSchema(LenientSchema):
-    content = Text(required=True, validate=[Length(1, 5000), has_non_whitespace])
+class CommentUpdateSchema(StrictSchema):
+    content = Text(required=True, validate=validate.Length(min=1, max=COMMENT_MAX))
 
 
-class CommentOutSchema(Schema):
-    id = fields.UUID(required=True)
-    card_id = fields.UUID(required=True)
-    content = fields.String(required=True, attribute="body")
-    author = fields.Nested(AuthorOutSchema, required=True)
-    created_at = UTCDateTime(required=True)
-    updated_at = UTCDateTime(required=True)
+class CommentSchema(Schema):
+    id = fields.UUID(dump_only=True)
+    content = fields.String(dump_only=True)
+    author = fields.Nested(PublicUserSchema, dump_only=True, allow_none=True)
+    created_at = UTCDateTime(dump_only=True)
+    updated_at = UTCDateTime(dump_only=True)

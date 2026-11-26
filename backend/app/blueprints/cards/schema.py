@@ -1,72 +1,63 @@
-from marshmallow import Schema, ValidationError, fields, validates_schema
-from marshmallow.validate import Length, OneOf, Range
+from marshmallow import Schema, fields, validate
 
-from app.common.schemas import CardOutSchema
-from app.common.validation import (
-    LenientSchema,
-    OrderValue,
-    StrictBoolean,
+from app.schemas import (
+    DESCRIPTION_MAX,
+    TITLE_MAX,
+    PaginationQuerySchema,
+    PatchSchema,
+    PublicUserSchema,
     StrictSchema,
-    StrictUUID,
     Text,
+    UTCDateTime,
 )
 
 
 class CardCreateSchema(StrictSchema):
-    # 'order', 'column_id', 'created_by' and 'completed' are unknown (Req 9.7).
-    title = Text(required=True, validate=Length(1, 255))
-    description = Text(allow_none=True, validate=Length(max=10000))
-    assignee_id = StrictUUID(allow_none=True)
+    title = Text(required=True, validate=validate.Length(min=1, max=TITLE_MAX))
+    description = Text(allow_none=True, validate=validate.Length(max=DESCRIPTION_MAX))
+    assignee_id = fields.UUID(allow_none=True)
+    due_date = fields.Date(allow_none=True)
 
 
-class CardUpdateSchema(StrictSchema):
-    title = Text(validate=Length(1, 255))
-    description = Text(allow_none=True, validate=Length(max=10000))
-    assignee_id = StrictUUID(allow_none=True)
-    completed = StrictBoolean()
-
-    @validates_schema
-    def at_least_one(self, data, **kwargs):
-        # {} gives 400 (Req 9.10). Unknown fields are rejected by StrictSchema.
-        if not data:
-            raise ValidationError(
-                "Provide title, description, assignee_id or completed", "_schema"
-            )
+class CardUpdateSchema(PatchSchema):
+    title = Text(validate=validate.Length(min=1, max=TITLE_MAX))
+    description = Text(allow_none=True, validate=validate.Length(max=DESCRIPTION_MAX))
+    assignee_id = fields.UUID(allow_none=True)
+    due_date = fields.Date(allow_none=True)
 
 
-class CardPositionSchema(LenientSchema):
-    # Validated before the target column is looked up (Req 10.1, 10.5).
-    column_id = StrictUUID(required=True)
-    order = OrderValue(required=True, validate=Range(min=0, min_inclusive=False))
-
-
-class SiblingOutSchema(Schema):
-    id = fields.UUID(required=True)
-    order = fields.Float(required=True)
-
-
-class CardMoveOutSchema(CardOutSchema):
+class CardPositionSchema(StrictSchema):
     column_id = fields.UUID(required=True)
-    rebalanced = fields.Boolean(required=True)
-    # Present only when rebalanced is true (Req 10.4).
-    siblings = fields.List(fields.Nested(SiblingOutSchema))
+    order = fields.Float(required=True, validate=validate.Range(min=0, min_inclusive=False))
 
 
-class CardListQuerySchema(LenientSchema):
-    # Unknown query keys are ignored.
-    assignee = fields.String(validate=OneOf(["me"]))
-    search = Text(validate=Length(1, 200))
-
-    @validates_schema
-    def exactly_one(self, data, **kwargs):
-        if ("assignee" in data) == ("search" in data):
-            message = "Provide exactly one of assignee or search"
-            raise ValidationError(
-                {"assignee": [message], "search": [message]}
-            )
+class AssignedCardsQuerySchema(PaginationQuerySchema):
+    assignee = fields.String(required=True, validate=validate.OneOf(["me"]))
+    board_id = fields.UUID()
+    done = fields.Boolean()
 
 
-class TaskGroupOutSchema(Schema):
-    board_id = fields.UUID(required=True)
-    board_name = fields.String(required=True)
-    cards = fields.List(fields.Nested(CardOutSchema), required=True)
+class CardSchema(Schema):
+    id = fields.UUID(dump_only=True)
+    board_id = fields.UUID(dump_only=True)
+    column_id = fields.UUID(dump_only=True)
+    title = fields.String(dump_only=True)
+    description = fields.String(dump_only=True, allow_none=True)
+    assignee_id = fields.UUID(dump_only=True, allow_none=True)
+    assignee = fields.Nested(PublicUserSchema, dump_only=True, allow_none=True)
+    due_date = fields.Date(dump_only=True, allow_none=True)
+    order = fields.Float(dump_only=True)
+    completed_at = UTCDateTime(dump_only=True, allow_none=True)
+    created_by = fields.UUID(dump_only=True, allow_none=True)
+    created_at = UTCDateTime(dump_only=True)
+    updated_at = UTCDateTime(dump_only=True)
+
+
+class AssignedCardSchema(Schema):
+    id = fields.UUID(dump_only=True)
+    title = fields.String(dump_only=True)
+    column_id = fields.UUID(dump_only=True)
+    column_name = fields.String(dump_only=True)
+    board_id = fields.UUID(dump_only=True)
+    board_name = fields.String(dump_only=True)
+    completed_at = UTCDateTime(dump_only=True, allow_none=True)

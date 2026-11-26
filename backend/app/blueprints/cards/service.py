@@ -1,206 +1,161 @@
+"""Card create, edit, move, soft delete and the assigned-tasks list (BE-SVC-05, BE-SVC-06, BE-ORD-03)."""
 from datetime import datetime, timezone
-from typing import Any
-from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import and_, func
 
-from app.common.access import CardAccess, ColumnAccess
-from app.common.constants import ActivityAction, NotificationType
-from app.common.db import commit_or_conflict, lock_board
-from app.common.errors import NotFound, ValidationFailed
-from app.common.events import (
-    create_notification,
-    fit_message,
-    log_activity,
-    message_card_assigned,
-    message_card_moved,
+from app.blueprints.cards.schema import (
+    AssignedCardsQuerySchema,
+    CardCreateSchema,
+    CardPositionSchema,
+    CardUpdateSchema,
 )
-from app.common.ordering import next_order, plan_move
+from app.blueprints.notifications.service import notify
+from app.errors import ValidationFailed
 from app.extensions import db
-from app.models.board import BoardMember
-from app.models import queries
-from app.models.card import Card
-from app.models.column import BoardColumn
-from app.models.user import User
+from app.models import Board, BoardColumn, BoardMember, Card
+from app.ordering import end_order, plan_order
+from app.pagination import paginate
+from app.permissions import authorize, board_admin_ids, load_board, load_card, load_column
+from app.schemas import parse
+from app.transactions import lock_board, transactional
 
 
-def _require_board_member(board_id: UUID, assignee_id: UUID) -> None:
-    found = db.session.execute(
-        select(BoardMember.user_id).where(
-            BoardMember.board_id == board_id, BoardMember.user_id == assignee_id
-        )
-    ).first()
-    if found is None:
-        raise ValidationFailed({"assignee_id": ["Not a member of this board."]})
+def _require_board_member(board_id, user_id):
+    if user_id is None:
+        return
+    if db.session.get(BoardMember, (board_id, user_id)) is None:
+        raise ValidationFailed(details={"assignee_id": ["User is not a member of this board."]})
 
 
-def _notify_assigned(user: User, board_id: UUID, card: Card) -> None:
-    create_notification(
-        card.assignee_id,
-        board_id,
-        NotificationType.CARD_ASSIGNED,
-        fit_message(message_card_assigned, card.title),
-        card.id,
-    )
-
-
-def create_card(user: User, access: ColumnAccess, data: dict[str, Any]) -> Card:
-    board_id = access.board_id
-    lock_board(board_id)
+@transactional
+def create_card(user, column_id, payload):
+    column = load_column(column_id)
+    board = load_board(column.board_id)
+    authorize(user, "card:create", board)
+    data = parse(CardCreateSchema, payload)
     assignee_id = data.get("assignee_id")
-    if assignee_id is not None:
-        _require_board_member(board_id, assignee_id)
-    siblings = db.session.execute(
-        select(Card.order).where(
-            Card.column_id == access.column.id, Card.deleted_at.is_(None)
-        )
-    ).scalars()
+    _require_board_member(board.id, assignee_id)
+    lock_board(board.id)
+    last = Card.active().with_entities(func.max(Card.order)).filter(Card.column_id == column.id).scalar()
     card = Card(
-        column_id=access.column.id,
+        board_id=board.id,
+        column_id=column.id,
         title=data["title"],
         description=data.get("description"),
         assignee_id=assignee_id,
+        due_date=data.get("due_date"),
+        order=end_order(last),
+        completed_at=datetime.now(timezone.utc) if column.is_done else None,
         created_by=user.id,
-        order=next_order(siblings),
     )
     db.session.add(card)
     db.session.flush()
-    log_activity(board_id, user.id, ActivityAction.CARD_CREATED, card.id)
-    if assignee_id is not None and assignee_id != user.id:
-        _notify_assigned(user, board_id, card)
-    commit_or_conflict()
-    db.session.refresh(card)
+    if assignee_id is not None:
+        notify(
+            [assignee_id],
+            type="card_assigned",
+            message=f'You were assigned the card "{card.title}".',
+            board_id=board.id,
+            actor_id=user.id,
+        )
     return card
 
 
-def update_card(user: User, access: CardAccess, data: dict[str, Any]) -> Card:
-    card = access.card
-    board_id = access.board_id
-    lock_board(board_id)
-
+@transactional
+def update_card(user, card_id, payload):
+    card = load_card(card_id)
+    board = load_board(card.board_id)
+    authorize(user, "card:update", board)
+    data = parse(CardUpdateSchema, payload)
+    if "assignee_id" in data:
+        _require_board_member(board.id, data["assignee_id"])
     previous_assignee = card.assignee_id
-    if data.get("assignee_id") is not None:
-        _require_board_member(board_id, data["assignee_id"])
-
-    changed = False
-    for key in ("title", "description", "assignee_id"):
-        if key in data and data[key] != getattr(card, key):
-            setattr(card, key, data[key])
-            changed = True
-
-    completed_now = False
-    if "completed" in data:
-        if data["completed"]:
-            if card.completed_at is None:
-                card.completed_at = datetime.now(timezone.utc)
-                completed_now = True
-        else:
-            card.completed_at = None
-
-    if completed_now:
-        log_activity(board_id, user.id, ActivityAction.CARD_COMPLETED, card.id)
-    if changed:
-        log_activity(board_id, user.id, ActivityAction.CARD_UPDATED, card.id)
-    if (
-        card.assignee_id is not None
-        and card.assignee_id != previous_assignee
-        and card.assignee_id != user.id
-    ):
-        _notify_assigned(user, board_id, card)
-
-    commit_or_conflict()
-    db.session.refresh(card)
+    for field in ("title", "description", "due_date", "assignee_id"):
+        if field in data:
+            setattr(card, field, data[field])
+    new_assignee = data.get("assignee_id")
+    if new_assignee is not None and new_assignee != previous_assignee:
+        notify(
+            [new_assignee],
+            type="card_assigned",
+            message=f'You were assigned the card "{card.title}".',
+            board_id=board.id,
+            actor_id=user.id,
+        )
     return card
 
 
-def delete_card(user: User, access: CardAccess) -> dict[str, Any]:
-    card = access.card
-    card.soft_delete()
-    log_activity(access.board_id, user.id, ActivityAction.CARD_DELETED, card.id)
-    commit_or_conflict()
-    return {"id": card.id}
+@transactional
+def move_card(user, card_id, payload):
+    card = load_card(card_id)
+    board = load_board(card.board_id)
+    authorize(user, "card:move", board)
+    data = parse(CardPositionSchema, payload)
+    target = db.session.get(BoardColumn, data["column_id"])
+    if target is None or target.board_id != board.id:
+        reason = "Column belongs to a different board." if target else "Column does not exist."
+        raise ValidationFailed(details={"column_id": [reason]})
 
-
-def move_card(user: User, access: CardAccess, data: dict[str, Any]) -> dict[str, Any]:
-    card = access.card
-    board_id = access.board_id
-    target = db.session.execute(
-        select(BoardColumn).where(
-            BoardColumn.id == data["column_id"],
-            BoardColumn.board_id == board_id,
-            BoardColumn.deleted_at.is_(None),
-        )
-    ).scalar_one_or_none()
-    if target is None:
-        raise NotFound()
-
-    lock_board(board_id)
-    siblings = list(
-        db.session.execute(
-            select(Card).where(
-                Card.column_id == target.id,
-                Card.deleted_at.is_(None),
-                Card.id != card.id,
-            )
-        )
-        .scalars()
+    lock_board(board.id)
+    from_column = card.column_id
+    cards_in_target = (
+        Card.active()
+        .filter(Card.column_id == target.id)
+        .order_by(Card.order, Card.id)
         .all()
     )
-    plan = plan_move(
-        [(s.id, s.order) for s in siblings], card.id, data["order"]
-    )
-
-    column_changed = card.column_id != target.id
+    placement = plan_order([(c.id, c.order) for c in cards_in_target], card.id, data["order"])
+    by_id = {c.id: c for c in cards_in_target}
+    by_id[card.id] = card
     card.column_id = target.id
-    card.order = plan.orders[card.id]
-    for sibling in siblings:
-        new_order = plan.orders.get(sibling.id)
-        if new_order is not None and new_order != sibling.order:
-            sibling.order = new_order
+    for card_key, new_order in placement.orders.items():
+        by_id[card_key].order = new_order
 
-    if column_changed:
-        log_activity(board_id, user.id, ActivityAction.CARD_MOVED, card.id)
-        if card.assignee_id is not None and card.assignee_id != user.id:
-            create_notification(
-                card.assignee_id,
-                board_id,
-                NotificationType.CARD_MOVED,
-                fit_message(
-                    lambda title: message_card_moved(title, target.title), card.title
-                ),
-                card.id,
-            )
+    if target.is_done:
+        if card.completed_at is None:
+            card.completed_at = datetime.now(timezone.utc)
+    else:
+        card.completed_at = None
 
-    commit_or_conflict()
-    db.session.refresh(card)
-    result: dict[str, Any] = {
-        "id": card.id,
-        "column_id": card.column_id,
-        "title": card.title,
-        "description": card.description,
-        "assignee_id": card.assignee_id,
-        "created_by": card.created_by,
-        "order": card.order,
-        "completed_at": card.completed_at,
-        "created_at": card.created_at,
-        "updated_at": card.updated_at,
-        "rebalanced": plan.rebalanced,
-    }
-    if plan.rebalanced:
-        ordered = sorted([card, *siblings], key=lambda c: (c.order, c.id))
-        result["siblings"] = [{"id": c.id, "order": c.order} for c in ordered]
-    return result
-
-
-def list_my_tasks(user: User) -> list[dict[str, Any]]:
-    groups: dict[UUID, dict[str, Any]] = {}
-    for board_id, board_name, card in queries.my_tasks(user.id):
-        group = groups.setdefault(
-            board_id, {"board_id": board_id, "board_name": board_name, "cards": []}
+    if from_column != target.id:
+        notify(
+            board_admin_ids(board.id),
+            type="card_moved",
+            message=f'The card "{card.title}" was moved to "{target.name}".',
+            board_id=board.id,
+            actor_id=user.id,
         )
-        group["cards"].append(card)
-    return list(groups.values())
+    return card, placement
 
 
-def search(user: User, term: str) -> list[Card]:
-    return list(queries.search_cards(term, user_id=user.id))
+@transactional
+def delete_card(user, card_id):
+    """Soft delete (BE-SVC-06). The row stays with deleted_at set."""
+    card = load_card(card_id)
+    board = load_board(card.board_id)
+    authorize(user, "card:delete", board, card)
+    card.soft_delete()
+
+
+def list_assigned(user, payload):
+    args = parse(AssignedCardsQuerySchema, payload)
+    query = (
+        Card.active()
+        .join(BoardColumn, BoardColumn.id == Card.column_id)
+        .join(Board, Board.id == Card.board_id)
+        .join(
+            BoardMember,
+            and_(BoardMember.board_id == Card.board_id, BoardMember.user_id == user.id),
+        )
+        .with_entities(Card, BoardColumn.name, Board.name)
+        .filter(Card.assignee_id == user.id)
+    )
+    if "board_id" in args:
+        query = query.filter(Card.board_id == args["board_id"])
+    if "done" in args:
+        query = query.filter(
+            Card.completed_at.isnot(None) if args["done"] else Card.completed_at.is_(None)
+        )
+    query = query.order_by(Board.name, BoardColumn.order, Card.order, Card.id)
+    rows, total, pages = paginate(query, args["page"], args["per_page"])
+    return rows, args["page"], args["per_page"], total, pages

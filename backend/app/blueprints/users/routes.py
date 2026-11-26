@@ -1,38 +1,20 @@
-from flask import Blueprint
+from flask import Blueprint, jsonify, request
 
-from app.common.auth import current_user, protected
-from app.common.envelope import ok
-from app.common.openapi import document
-from app.common.validation import load_body
-
-from . import service
-from .schema import ProfileOutSchema, ProfileUpdateSchema
+from app.auth_utils import auth_required, current_user
+from app.blueprints.users import service
+from app.blueprints.users.schema import UserSchema
 
 bp = Blueprint("users", __name__)
 
 
 @bp.get("/api/users/me")
-@document(
-    summary="Get the current user's profile",
-    success=ProfileOutSchema,
-    status=200,
-)
-@protected
+@auth_required
 def get_me():
-    user = service.get_profile(current_user())
-    return ok(ProfileOutSchema().dump(user))
+    return jsonify(UserSchema().dump(current_user())), 200
 
 
 @bp.patch("/api/users/me")
-@document(
-    summary="Update the current user's profile",
-    request=ProfileUpdateSchema,
-    success=ProfileOutSchema,
-    status=200,
-    conflict=True,
-)
-@protected
+@auth_required
 def update_me():
-    data = load_body(ProfileUpdateSchema())
-    user = service.update_profile(current_user(), data)
-    return ok(ProfileOutSchema().dump(user))
+    user = service.update_me(current_user(), request.get_json(silent=True))
+    return jsonify(UserSchema().dump(user)), 200

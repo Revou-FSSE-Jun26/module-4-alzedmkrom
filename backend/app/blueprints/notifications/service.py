@@ -1,70 +1,58 @@
-from typing import Any
+"""Notification creation and reads (BE-NTF-01, BE-NTF-02, BE-NTF-03).
 
+`notify` is the only place that writes notification rows. It runs inside the
+caller's transaction. The notifications.type CHECK in the database accepts only
+the four values in STORED_TYPES. Other triggers listed in BE-NTF-01 cannot be stored
+and are not emitted (see the final report).
+"""
 from sqlalchemy import func, select
 
-from app.common.db import commit_or_conflict
-from app.common.errors import NotFound
-from app.common.validation import parse_uuid
+from app.errors import NotFound
 from app.extensions import db
-from app.models import queries
-from app.models.board import Board
-from app.models.column import BoardColumn
-from app.models.card import Card
-from app.models.notification import Notification
-from app.models.user import User
+from app.models import Notification
+from app.pagination import paginate
+
+STORED_TYPES = frozenset({"card_assigned", "card_moved", "comment_added", "member_added"})
+MESSAGE_MAX = 500
 
 
-def _to_dict(notification: Notification, card_id: Any) -> dict[str, Any]:
-    # A dict, so masking card_id never dirties the ORM object.
-    return {
-        "id": notification.id,
-        "type": notification.type,
-        "message": notification.message,
-        "board_id": notification.board_id,
-        "card_id": card_id,
-        "is_read": notification.is_read,
-        "created_at": notification.created_at,
-    }
-
-
-def _live_card_ids(card_ids: set) -> set:
-    if not card_ids:
-        return set()
-    return set(
-        db.session.scalars(
-            select(Card.id)
-            .join(BoardColumn, Card.column_id == BoardColumn.id)
-            .join(Board, BoardColumn.board_id == Board.id)
-            .where(
-                Card.id.in_(card_ids),
-                Card.deleted_at.is_(None),
-                BoardColumn.deleted_at.is_(None),
-                Board.deleted_at.is_(None),
+def notify(recipient_ids, *, type, message, board_id, actor_id):
+    """Add one row per distinct recipient, skipping the actor. Does not commit."""
+    if type not in STORED_TYPES:
+        raise ValueError(f"Notification type {type!r} is not allowed by the database CHECK.")
+    seen = set()
+    for user_id in recipient_ids:
+        if user_id is None or user_id == actor_id or user_id in seen:
+            continue
+        seen.add(user_id)
+        db.session.add(
+            Notification(
+                user_id=user_id,
+                type=type,
+                message=message[:MESSAGE_MAX],
+                board_id=board_id,
             )
-        ).all()
+        )
+
+
+def list_notifications(user, page, per_page):
+    query = (
+        Notification.query.filter(Notification.user_id == user.id)
+        .order_by(Notification.created_at.desc(), Notification.id.desc())
     )
-
-
-def list_notifications(user: User, page: int, per_page: int) -> dict[str, Any]:
-    rows = queries.notifications_page(user.id, per_page, (page - 1) * per_page)
-    total = db.session.scalar(
-        select(func.count(Notification.id)).where(Notification.user_id == user.id)
+    items, total, pages = paginate(query, page, per_page)
+    unread = db.session.scalar(
+        select(func.count(Notification.id)).where(
+            Notification.user_id == user.id, Notification.is_read.is_(False)
+        )
     )
-    live = _live_card_ids({n.card_id for n in rows if n.card_id is not None})
-    items = [_to_dict(n, n.card_id if n.card_id in live else None) for n in rows]
-    return {"items": items, "page": page, "per_page": per_page, "total": total}
+    return items, total, pages, unread
 
 
-def mark_read(user: User, raw_id: str) -> dict[str, Any]:
-    notification = db.session.get(Notification, parse_uuid(raw_id))
+def mark_read(user, notification_id):
+    notification = db.session.get(Notification, notification_id)
     if notification is None or notification.user_id != user.id:
         raise NotFound()
-    if not notification.is_read:
-        notification.is_read = True
-        commit_or_conflict()
-        db.session.refresh(notification)
-    live = _live_card_ids(
-        {notification.card_id} if notification.card_id is not None else set()
-    )
-    card_id = notification.card_id if notification.card_id in live else None
-    return _to_dict(notification, card_id)
+    notification.is_read = True
+    db.session.commit()
+    return notification

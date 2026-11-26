@@ -1,53 +1,53 @@
-from marshmallow import Schema, fields
-from marshmallow.validate import Length, OneOf
+from marshmallow import Schema, fields, validate
 
-from app.common.schemas import CardOutSchema, ColumnOutSchema
-from app.common.validation import Email, LenientSchema, Text, UTCDateTime
+from app.schemas import (
+    NAME_MAX,
+    Email,
+    PaginationQuerySchema,
+    PatchSchema,
+    StrictSchema,
+    Text,
+    UTCDateTime,
+)
 
-
-class BoardCreateSchema(LenientSchema):
-    name = Text(required=True, validate=Length(1, 255))
-
-
-class BoardUpdateSchema(BoardCreateSchema):
-    pass
-
-
-class BoardOutSchema(Schema):
-    id = fields.UUID(required=True)
-    name = fields.String(required=True)
-    owner_id = fields.UUID(required=True)
-    role = fields.String(required=True)
-    created_at = UTCDateTime(required=True)
-    updated_at = UTCDateTime(required=True)
+ROLES = ["member", "admin"]
 
 
-class ColumnWithCardsOutSchema(ColumnOutSchema):
-    cards = fields.List(fields.Nested(CardOutSchema), required=True)
+class BoardCreateSchema(StrictSchema):
+    name = Text(required=True, validate=validate.Length(min=1, max=NAME_MAX))
+    is_public = fields.Boolean(load_default=True)
 
 
-class BoardDetailOutSchema(BoardOutSchema):
-    columns = fields.List(fields.Nested(ColumnWithCardsOutSchema), required=True)
-
-_ROLES = ["member", "admin"]
-
-
-class MemberAddSchema(LenientSchema):
-    email = Email(required=True)
-    role = fields.String(validate=OneOf(_ROLES), load_default="member")
+class BoardUpdateSchema(PatchSchema):
+    name = Text(validate=validate.Length(min=1, max=NAME_MAX))
+    is_public = fields.Boolean()
 
 
-class MemberRoleSchema(LenientSchema):
-    role = fields.String(required=True, validate=OneOf(_ROLES))
+class BoardListQuerySchema(PaginationQuerySchema):
+    scope = fields.String(validate=validate.OneOf(["mine", "public"]))
 
 
-class MemberOutSchema(Schema):
-    user_id = fields.UUID(required=True)
-    name = fields.String(required=True)
-    email = fields.String(required=True)
-    role = fields.String(required=True)
-    created_at = UTCDateTime(required=True)
+class MemberAddSchema(StrictSchema):
+    email = Email(required=True, validate=validate.Email())
+    role = fields.String(required=True, validate=validate.OneOf(ROLES))
 
 
-class MemberRemovedOutSchema(Schema):
-    user_id = fields.UUID(required=True)
+class MemberUpdateSchema(StrictSchema):
+    role = fields.String(required=True, validate=validate.OneOf(ROLES))
+
+
+class BoardSchema(Schema):
+    id = fields.UUID(dump_only=True)
+    name = fields.String(dump_only=True)
+    is_public = fields.Boolean(dump_only=True)
+    created_by = fields.UUID(dump_only=True, allow_none=True)
+    created_at = UTCDateTime(dump_only=True)
+    updated_at = UTCDateTime(dump_only=True)
+
+
+class MemberSchema(Schema):
+    user_id = fields.UUID(dump_only=True)
+    name = fields.String(dump_only=True)
+    email = fields.String(dump_only=True, allow_none=True)
+    role = fields.String(dump_only=True)
+    created_at = UTCDateTime(dump_only=True)
