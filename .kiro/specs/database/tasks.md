@@ -173,7 +173,7 @@ All paths below are relative to `/backend`. Test files live in `tests/database/`
     - Railway guard refuses without `--force`
     - _Requirements: 12.1, 12.3, 12.4_
 
-- [ ] 9. Checkpoint - Ensure all tests pass
+- [x] 9. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 10. Write property tests for constraints, triggers and foreign keys

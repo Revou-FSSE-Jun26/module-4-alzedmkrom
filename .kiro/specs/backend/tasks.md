@@ -385,7 +385,7 @@ Structure decisions that keep the tasks independent of each other:
     - `.env` loading with process-environment precedence, blank and missing `JWT_SECRET_KEY` raises an error containing `JWT_SECRET_KEY` before any engine exists, `.env.example` is tracked and has the five `NAME=value` lines with placeholders, `requirements.txt` lines have `>=` and `<`, `railway.json` start and pre-deploy commands, `.coveragerc` has `fail_under = 80.0`
     - _Requirements: 20.1, 20.2, 20.3, 20.6, 20.7, 20.8, 20.9, 23.4_
 
-- [ ] 16. Checkpoint - Ensure all tests pass
+- [x] 16. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 17. Write cross-cutting and remaining property tests
