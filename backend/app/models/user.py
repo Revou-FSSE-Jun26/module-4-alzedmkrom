@@ -5,14 +5,18 @@ from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 class User(UUIDPrimaryKeyMixin, TimestampMixin, db.Model):
     __tablename__ = "users"
 
-    name = db.Column(db.Text, nullable=False)
-    email = db.Column(db.Text, nullable=False)
-    # Only a hash is stored; there is no plaintext password column.
-    password_hash = db.Column(db.Text, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
+    # Salted hash only. There is no plaintext password column.
+    password_hash = db.Column(db.String(255), nullable=False)
 
     __table_args__ = (
-        db.CheckConstraint("char_length(name) BETWEEN 1 AND 255", name="name_length"),
+        # Minimum-length checks per OD-3. Maximum lengths come from VARCHAR.
+        db.CheckConstraint("char_length(name) >= 1", name="name_length"),
         db.CheckConstraint("char_length(email) BETWEEN 3 AND 254", name="email_length"),
+        db.CheckConstraint(
+            "char_length(password_hash) >= 1", name="password_hash_length"
+        ),
         db.Index("uq_users_email_lower", db.func.lower(email), unique=True),
     )
 
