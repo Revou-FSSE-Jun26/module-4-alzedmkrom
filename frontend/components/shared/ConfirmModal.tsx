@@ -24,7 +24,7 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   return (
     <BaseModal open={open} title={title} onClose={onCancel}>
-      <p className="mb-6 text-sm text-gray-700">{message}</p>
+      <p className="mb-6 text-base text-gray-700">{message}</p>
       <div className="flex justify-end gap-2">
         <BaseButton variant="secondary" onClick={() => onCancel()}>
           Cancel

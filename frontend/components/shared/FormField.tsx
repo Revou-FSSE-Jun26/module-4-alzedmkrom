@@ -29,17 +29,17 @@ export function FormField({ label, error, hint, children }: FormFieldProps) {
 
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-gray-800">
+      <label htmlFor={id} className="text-base font-medium text-gray-800">
         {label}
       </label>
       {children(control)}
       {hint ? (
-        <p id={hintId} className="text-sm text-gray-600">
+        <p id={hintId} className="text-base text-gray-600">
           {hint}
         </p>
       ) : null}
       {hasError ? (
-        <p id={errorId} className="text-sm text-red-700">
+        <p id={errorId} className="text-base text-red-700">
           {error}
         </p>
       ) : null}

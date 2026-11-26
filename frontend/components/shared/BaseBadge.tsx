@@ -9,7 +9,7 @@ export interface BaseBadgeProps {
 }
 
 const BASE_CLASSES =
-  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium";
+  "inline-flex items-center rounded-full px-2 py-0.5 text-sm font-medium";
 
 const COLOR_CLASSES: Record<BadgeColor, string> = {
   gray: "bg-gray-100 text-gray-800",

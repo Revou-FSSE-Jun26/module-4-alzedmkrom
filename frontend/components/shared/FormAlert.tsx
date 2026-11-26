@@ -8,7 +8,7 @@ export function FormAlert({ message }: FormAlertProps) {
   }
 
   return (
-    <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-base text-red-700">
       {message}
     </div>
   );
