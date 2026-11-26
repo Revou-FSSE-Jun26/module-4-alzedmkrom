@@ -1,12 +1,25 @@
 # frontend.md Changelog
 
-Newest first. The current file is v10, produced on 2026-11-26. Each change is logged as it is made, so entries are accurate summaries, though earlier file versions are not kept for download.
+Newest first. The current file is v11, produced on 2026-11-26. Each change is logged as it is made, so entries are accurate summaries, though earlier file versions are not kept for download.
 
 Keep this file outside `.kiro/steering/` (for example `docs/`) so Kiro does not load it as context.
 
 ---
 
-## v10 (current): Registration signs the user in
+## v11 (current): Expired session wording
+
+**Changed**
+- **FE-AUTH-04:** the rule now states what happens on each path. A 401 in a Client Component deletes the cookie, clears `AuthContext`, and redirects. A 401 in a Server Component redirects but keeps the cookie, because Server Components cannot write cookies. The browser drops that cookie at the token's expiry, and a stale cookie does not cause a redirect loop. The old text said the session was cleared on every 401, which the Server Component path did not do.
+
+**Reason**
+- Review of the open gap (v10 question): a server-side 401 leaves the cookie in place, and the team chose to accept it rather than add a Route Handler.
+
+**Related changes in other files**
+- Code: none for this entry.
+
+---
+
+## v10: Registration signs the user in
 
 **Changed**
 - **Product decisions:** registration no longer redirects to `/login`. The new user is signed in automatically, with the same credentials they typed.

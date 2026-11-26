@@ -50,20 +50,27 @@ export function KanbanColumn({
         .filter(Boolean)
         .join(" ")}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 id={headingId} className="min-w-0 flex-1 break-words text-lg font-semibold text-gray-900">
-          {column.name}
-        </h2>
-        <BaseBadge color="gray">{sortedCards.length}</BaseBadge>
-        {canWrite ? (
-          <BaseButton variant="secondary" onClick={onRename} className="min-h-10">
-            Rename
-          </BaseButton>
-        ) : null}
-        {canDelete ? (
-          <BaseButton variant="destructive" onClick={onDelete} className="min-h-10">
-            Delete
-          </BaseButton>
+      {/* The title has its own row so a long name wraps by word, not letter. The actions sit below it. */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <h2 id={headingId} className="min-w-0 break-words text-lg font-semibold text-gray-900">
+            {column.name}
+          </h2>
+          <BaseBadge color="gray">{sortedCards.length}</BaseBadge>
+        </div>
+        {canWrite || canDelete ? (
+          <div className="flex flex-wrap gap-2">
+            {canWrite ? (
+              <BaseButton variant="secondary" onClick={onRename} className="min-h-10">
+                Rename
+              </BaseButton>
+            ) : null}
+            {canDelete ? (
+              <BaseButton variant="destructive" onClick={onDelete} className="min-h-10">
+                Delete
+              </BaseButton>
+            ) : null}
+          </div>
         ) : null}
       </div>
       <ul

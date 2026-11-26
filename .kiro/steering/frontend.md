@@ -92,7 +92,7 @@ These were deliberate decisions. Do not undo them, and do not add behavior that 
 - **RevoTask example:** after logout, the header shows "Log in" and `/my-tasks` redirects to `/login`.
 
 ### FE-AUTH-04 Expired or invalid sessions
-- **Rule:** A 401 from any API call (other than the login request itself) clears the session and redirects to `/login?next=<current path>`, with one "Session expired" toast per redirect. A 401 on the login request is a wrong-credentials error shown inline ("Invalid email or password"). Server Components catch `ApiError` with status 401 and call `redirect`. The `next` value must be a same-origin relative path (FE-SEC-03).
+- **Rule:** A 401 from a Client Component API call runs the expiry flow: it deletes the session cookie (through the logout Server Action), clears `AuthContext`, shows one "Session expired" toast, and redirects to `/login?next=<current path>`. A 401 during a Server Component render redirects to the same login path with the expired flag. It does not delete the cookie, because Server Components cannot write cookies. The browser drops that cookie when its max age (the token's `expires_in`) passes, and the next login replaces it. A stale cookie does not loop: the login page redirects only when the server session has a user, and a rejected token gives none. A 401 on the login request is a wrong-credentials error shown inline ("Invalid email or password"). Server Components catch `ApiError` with status 401 and call `redirect`. The `next` value must be a same-origin relative path (FE-SEC-03).
 - **Rationale:** One policy for 401 avoids half-logged-in states and toast spam.
 - **RevoTask example:** an expired token on `/my-tasks` sends the user to `/login?next=/my-tasks`.
 
