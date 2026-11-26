@@ -34,7 +34,7 @@ Guests (logged in, no membership on the board) and Anonymous visitors (not logge
 
 These were deliberate decisions. Do not undo them, and do not add behavior that contradicts them.
 - The JWT is kept in an httpOnly cookie so sessions survive refreshes and Server Components can read them, and it is also placed in `AuthContext` for Client Components (FE-AUTH-01, FE-AUTH-02).
-- Registration redirects to `/login`, because the backend returns no token on register.
+- Registration signs the new user in automatically. The register response has no token, so the frontend calls the login Server Action with the same credentials and then opens `/`.
 - Added UI the requirement list omits but the roles need: create board, add and rename columns, add and edit cards, delete controls, an Admin members panel, and an Admin analytics panel (FE-PAGE-07).
 - A "Move to column" select in `CardDetailModal` is the keyboard and touch fallback for native drag-and-drop (FE-DND-05).
 - Column reordering has no UI, even though the backend supports it.
@@ -147,8 +147,8 @@ Components never build their own messages from `statusCode`, and never show raw 
 ## 4. Pages
 
 ### FE-PAGE-01 `/register` and `/login`
-- **Rule:** Both are Client Component forms with controlled inputs and client-side validation (FE-FRM). `/register` submits `POST /api/auth/register`, then shows a success toast and redirects to `/login`. A 409 `EMAIL_TAKEN` is shown on the email field. `/login` follows FE-AUTH-02 and FE-AUTH-04.
-- **Rationale:** The register response has no token, so a redirect to login is the only honest next step.
+- **Rule:** Both are Client Component forms with controlled inputs and client-side validation (FE-FRM). `/register` submits `POST /api/auth/register`, then calls the login Server Action with the same email and password (auto-login). On success it shows a success toast, refreshes the layout so `AuthContext` loads the new user, and opens `/`. If the auto-login fails, it shows the "Account created. Please log in." toast and redirects to `/login`. A 409 `EMAIL_TAKEN` is shown on the email field. `/login` follows FE-AUTH-02 and FE-AUTH-04.
+- **Rationale:** The register response has no token, so the frontend signs the user in with the same credentials. The user does not have to type them twice.
 - **RevoTask example:** registering `ana@example.com` twice shows "Email already in use" under the email input.
 
 ### FE-PAGE-02 `/` Dashboard

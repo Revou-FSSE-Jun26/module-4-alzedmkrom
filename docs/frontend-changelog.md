@@ -1,12 +1,24 @@
 # frontend.md Changelog
 
-Newest first. The current file is v9, produced on 2026-11-14. Each change is logged as it is made, so entries are accurate summaries, though earlier file versions are not kept for download.
+Newest first. The current file is v10, produced on 2026-11-26. Each change is logged as it is made, so entries are accurate summaries, though earlier file versions are not kept for download.
 
 Keep this file outside `.kiro/steering/` (for example `docs/`) so Kiro does not load it as context.
 
 ---
 
-## v9 (current): Design reference location
+## v10 (current): Registration signs the user in
+
+**Changed**
+- **Product decisions:** registration no longer redirects to `/login`. The new user is signed in automatically, with the same credentials they typed.
+- **FE-PAGE-01:** `/register` calls the login Server Action after a successful `POST /api/auth/register`. On success it refreshes the layout (so `AuthContext` loads the user) and opens `/`. If auto-login fails, it shows "Account created. Please log in." and redirects to `/login`.
+
+**Related changes in other files**
+- Code: `components/auth/RegisterForm.tsx`, with unit tests and the e2e helper `e2e/helpers/auth.ts`, which already expected `/`.
+- Backend: none. The register response still has no token, so the frontend logs in with the same credentials.
+
+---
+
+## v9: Design reference location
 
 **Added**
 - **FE-UX-04:** the visual design reference is `.kiro/design-visual/design.html`. Kiro must open it before building or changing UI, match screens and components through `data-screen`, `data-route`, and `data-component`, keep design tokens in one place, and never build the design bar. On a conflict about behavior, data, or text sizes, `frontend.md` wins and the conflict is reported. The file itself is not edited unless asked.

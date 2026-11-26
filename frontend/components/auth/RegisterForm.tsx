@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { loginAction } from "@/app/actions/session";
 import { BaseButton } from "@/components/shared/BaseButton";
 import { FormAlert } from "@/components/shared/FormAlert";
 import { FormField } from "@/components/shared/FormField";
@@ -25,8 +26,8 @@ const EMPTY_VALUES: RegisterValues = { name: "", email: "", password: "" };
 const INPUT_CLASSES =
   "rounded-md border border-gray-300 bg-white px-3 py-2 text-base text-gray-900 focus-visible:outline-2 focus-visible:outline-blue-600 aria-[invalid=true]:border-red-600";
 
-// Registration creates an account and sends the user to /login. The API returns no
-// token on register, so the user signs in on the next page (FE-PAGE-01).
+// Registration creates an account, then signs the user in with the same credentials (FE-PAGE-01).
+// The API returns no token on register.
 export function RegisterForm() {
   const router = useRouter();
   const api = useApi();
@@ -80,6 +81,14 @@ export function RegisterForm() {
       }
       // Input stays in the form on every other error (FE-FRM-03).
       handleError(error);
+      return;
+    }
+    // The register response has no token, so sign in with the same credentials (FE-PAGE-01).
+    const login = await loginAction(values.email.trim(), values.password);
+    if (login.ok) {
+      showSuccessToast("Account created.");
+      router.replace("/");
+      router.refresh();
       return;
     }
     showSuccessToast("Account created. Please log in.");
