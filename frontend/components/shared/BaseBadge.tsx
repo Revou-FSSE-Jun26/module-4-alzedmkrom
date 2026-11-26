@@ -8,14 +8,14 @@ export interface BaseBadgeProps {
   children: ReactNode;
 }
 
-const BASE_CLASSES =
-  "inline-flex items-center rounded-full px-2 py-0.5 text-sm font-medium";
+// Uses the .badge class from app/globals.css: 14px, medium weight (FE-UI-02, FE-UX-03).
+const BASE_CLASSES = "badge";
 
 const COLOR_CLASSES: Record<BadgeColor, string> = {
-  gray: "bg-gray-100 text-gray-800",
-  blue: "bg-blue-100 text-blue-700",
-  green: "bg-green-100 text-green-700",
-  yellow: "bg-yellow-100 text-yellow-800",
+  gray: "bg-slate-200 text-slate-700",
+  blue: "bg-brand-100 text-brand-700",
+  green: "bg-emerald-100 text-emerald-700",
+  yellow: "bg-amber-100 text-amber-800",
   red: "bg-red-100 text-red-700",
 };
 

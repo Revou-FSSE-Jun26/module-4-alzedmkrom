@@ -7,7 +7,7 @@ import { NotificationBell } from "@/components/layout/NotificationBell";
 import { useAuth } from "@/context/AuthContext";
 
 const NAV_LINK_CLASSES =
-  "rounded-md px-2 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900";
+  "rounded-lg px-3 py-1.5 text-base font-medium text-ink hover:bg-bg";
 
 // Top bar on every Protected_Path page: brand, navigation, Notification_Bell and logout (Requirements 2.5, 18.10, 21).
 export function Header() {
@@ -15,9 +15,16 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="border-b border-gray-200 bg-white">
+    <header className="border-b border-line bg-surface shadow-[0_12px_28px_-18px_rgba(15,40,100,.35)]">
+      <div className="prism h-[3px]" />
       <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-        <Link href="/" className="text-lg font-semibold text-gray-900">
+        <Link href="/" className="flex items-center gap-2.5 text-lg font-bold tracking-tight text-ink">
+          <span
+            aria-hidden="true"
+            className="prism grid h-8 w-8 place-items-center rounded-[10px] text-base font-bold text-white"
+          >
+            R
+          </span>
           RevoTask
         </Link>
 

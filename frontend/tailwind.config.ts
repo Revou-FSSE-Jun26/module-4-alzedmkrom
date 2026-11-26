@@ -3,6 +3,21 @@ const config = {
   theme: {
     extend: {
       colors: {
+        // Design tokens (.kiro/design-visual/design.html). The values are CSS variables in globals.css,
+        // so light and dark share the same class names (FE-UX-04).
+        bg: "var(--bg)",
+        surface: "var(--surface)",
+        line: "var(--line)",
+        ink: "var(--ink)",
+        mute: "var(--mute)",
+        brand: {
+          50: "#eff6ff",
+          100: "#dbeafe",
+          300: "#93c5fd",
+          500: "#3b82f6",
+          600: "#2563eb",
+          700: "#1d4ed8",
+        },
         badge: {
           gray: { bg: "#f3f4f6", text: "#374151" },
           blue: { bg: "#dbeafe", text: "#1e40af" },

@@ -29,7 +29,7 @@ export function CardItem({ card, assigneeName, dnd, onOpen }: CardItemProps) {
         {...dnd.cardDragProps(card.id)}
         onClick={() => onOpen()}
         onKeyDown={handleKeyDown}
-        className="flex cursor-pointer flex-col gap-2 rounded-md border border-gray-200 bg-white p-3 hover:border-gray-400"
+        className="kcard flex cursor-pointer flex-col gap-2"
       >
         <p className="text-base font-semibold text-gray-900">{card.title}</p>
         <div className="flex flex-wrap items-center gap-2">

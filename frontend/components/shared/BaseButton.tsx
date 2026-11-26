@@ -16,14 +16,13 @@ export type BaseButtonProps =
   | (BaseButtonCommon & ButtonHTMLAttributes<HTMLButtonElement> & { href?: undefined })
   | (BaseButtonCommon & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & { href: string });
 
-const BASE_CLASSES =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 py-2 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60";
+// Classes come from app/globals.css (the design's .btn, .btn-primary, ...). Keep them in one place (FE-UX-04).
+const BASE_CLASSES = "btn";
 
 const VARIANT_CLASSES: Record<BaseButtonVariant, string> = {
-  primary: "bg-blue-600 text-white hover:bg-blue-700 focus-visible:outline-blue-600",
-  secondary:
-    "border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 focus-visible:outline-gray-500",
-  destructive: "bg-red-600 text-white hover:bg-red-700 focus-visible:outline-red-600",
+  primary: "btn-primary",
+  secondary: "btn-secondary",
+  destructive: "btn-destructive",
 };
 
 function Spinner() {

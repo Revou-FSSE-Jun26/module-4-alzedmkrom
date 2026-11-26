@@ -1,2 +1,182 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
+
+/* Design tokens from .kiro/design-visual/design.html. Light values on :root, dark values on .dark.
+   Components read these through Tailwind classes (bg-surface, text-ink, border-line, ...). */
+:root {
+  --bg: #f4f7fc;
+  --surface: #ffffff;
+  --line: #dfe6f2;
+  --ink: #0e1a33;
+  --mute: #5b6b8a;
+  --prism: linear-gradient(90deg, #2563eb, #6366f1 35%, #06b6d4 70%, #8b5cf6);
+  --lift: 0 1px 2px rgba(15, 40, 100, 0.06), 0 6px 18px -8px rgba(15, 40, 100, 0.14);
+  --w1: rgba(37, 99, 235, 0.14);
+  --w2: rgba(139, 92, 246, 0.13);
+  --w3: rgba(6, 182, 212, 0.12);
+  --w4: rgba(99, 102, 241, 0.1);
+  --dot: rgba(30, 64, 140, 0.1);
+  --b1: rgba(99, 102, 241, 0.05);
+  --b2: rgba(6, 182, 212, 0.07);
+  --b3: rgba(139, 92, 246, 0.05);
+  --rb-op: 0.18;
+}
+
+.dark {
+  --bg: #080d1c;
+  --surface: #1a2448;
+  --line: #3a4878;
+  --ink: #e7ecf8;
+  --mute: #aab6d4;
+  --lift: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 22px -10px rgba(0, 0, 0, 0.6);
+  --w1: rgba(37, 99, 235, 0.3);
+  --w2: rgba(139, 92, 246, 0.24);
+  --w3: rgba(6, 182, 212, 0.15);
+  --w4: rgba(99, 102, 241, 0.2);
+  --dot: rgba(160, 185, 255, 0.1);
+  --b1: rgba(99, 102, 241, 0.08);
+  --b2: rgba(6, 182, 212, 0.09);
+  --b3: rgba(139, 92, 246, 0.08);
+  --rb-op: 0.32;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.prism {
+  background: var(--prism);
+}
+
+/* Fixed background: light washes, a faint dot grid, and two blurred spectrum ribbons. Decorative only. */
+.prism-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(60rem 36rem at 8% -8%, var(--w1), transparent 60%),
+    radial-gradient(52rem 34rem at 100% 0%, var(--w2), transparent 62%),
+    radial-gradient(46rem 30rem at 88% 108%, var(--w3), transparent 62%),
+    radial-gradient(38rem 26rem at 0% 100%, var(--w4), transparent 62%);
+}
+
+.prism-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.3px);
+  background-size: 24px 24px;
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 72%);
+  mask-image: linear-gradient(to bottom, #000, transparent 72%);
+}
+
+.prism-bg::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    var(--b1) 47%,
+    var(--b2) 50%,
+    var(--b3) 53%,
+    transparent 58%
+  );
+}
+
+.pb-ribbon {
+  position: absolute;
+  height: 110px;
+  border-radius: 9999px;
+  filter: blur(64px);
+  opacity: var(--rb-op);
+  background: linear-gradient(90deg, #2563eb, #6366f1, #06b6d4, #8b5cf6);
+}
+
+.pb-r1 {
+  width: 70vw;
+  right: -22vw;
+  top: 20vh;
+  transform: rotate(-24deg);
+}
+
+.pb-r2 {
+  width: 60vw;
+  left: -24vw;
+  bottom: 12vh;
+  transform: rotate(-24deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* Shared component classes. BaseButton, BaseBadge, and the Kanban card use these (FE-UI-01, FE-UI-02). */
+@layer components {
+  .btn {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-base font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50;
+  }
+
+  /* Variants are used together with .btn (BaseButton renders both classes). */
+  .btn-primary {
+    @apply text-white;
+    background-image: linear-gradient(110deg, #2563eb 0%, #4f46e5 45%, #7c3aed 100%);
+    background-size: 170% 100%;
+    background-position: 0 0;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      0 6px 16px -6px rgba(79, 70, 229, 0.55);
+    transition-property: background-position, box-shadow, transform;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background-position: 100% 0;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.34),
+      0 8px 20px -6px rgba(99, 102, 241, 0.7);
+  }
+
+  .btn-secondary {
+    @apply text-ink;
+    border: 1.5px solid transparent;
+    background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--prism) border-box;
+    transition-property: box-shadow, transform;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    box-shadow: 0 8px 20px -10px rgba(99, 102, 241, 0.65);
+  }
+
+  .btn-destructive {
+    @apply text-white;
+    background-image: linear-gradient(110deg, #dc2626 0%, #e11d48 55%, #be185d 100%);
+    background-size: 170% 100%;
+    background-position: 0 0;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.26),
+      0 6px 16px -6px rgba(220, 38, 38, 0.5);
+    transition-property: background-position, box-shadow, transform;
+  }
+
+  .btn-destructive:hover:not(:disabled) {
+    background-position: 100% 0;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.34),
+      0 8px 20px -6px rgba(225, 29, 72, 0.7);
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium leading-none;
+  }
+
+  .kcard {
+    @apply block w-full cursor-grab rounded-xl border border-line bg-surface p-3 text-left transition hover:border-brand-500;
+    box-shadow: var(--lift);
+  }
+}

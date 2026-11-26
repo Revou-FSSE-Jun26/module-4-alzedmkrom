@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Header } from "@/components/layout/Header";
+import { PrismBackground } from "@/components/layout/PrismBackground";
 
 const BARE_PATHS = ["/login", "/register"];
 
@@ -13,6 +14,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <>
+      <PrismBackground />
       {!bare && <Header />}
       <main className="mx-auto w-full max-w-screen-2xl px-4 py-6">{children}</main>
     </>
