@@ -1,14 +1,23 @@
-import type { ButtonHTMLAttributes } from "react";
+import Link from "next/link";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from "react";
+
+// The only file allowed to render a raw <button> (FE-UI-01). ESLint enforces this.
 
 export type BaseButtonVariant = "primary" | "secondary" | "destructive";
 
-export interface BaseButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface BaseButtonCommon {
   variant?: BaseButtonVariant;
+  /** Disables the button and sets aria-busy while a request runs. */
   loading?: boolean;
+  className?: string;
 }
 
+export type BaseButtonProps =
+  | (BaseButtonCommon & ButtonHTMLAttributes<HTMLButtonElement> & { href?: undefined })
+  | (BaseButtonCommon & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & { href: string });
+
 const BASE_CLASSES =
-  "inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-md px-4 py-2 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60";
 
 const VARIANT_CLASSES: Record<BaseButtonVariant, string> = {
   primary: "bg-blue-600 text-white hover:bg-blue-700 focus-visible:outline-blue-600",
@@ -32,20 +41,49 @@ function Spinner() {
   );
 }
 
-export function BaseButton({
-  variant = "primary",
-  loading = false,
-  type,
-  disabled,
-  className,
-  children,
-  ...rest
-}: BaseButtonProps) {
+export function BaseButton(props: BaseButtonProps) {
+  const { variant = "primary", loading = false, className, children } = props;
   const classes = [BASE_CLASSES, VARIANT_CLASSES[variant], className].filter(Boolean).join(" ");
 
+  if (props.href !== undefined) {
+    const { href, variant: _variant, loading: _loading, className: _className, children: _children, ...anchorRest } =
+      props;
+    void _variant;
+    void _loading;
+    void _className;
+    void _children;
+    return (
+      <Link
+        {...anchorRest}
+        href={href}
+        aria-disabled={loading || undefined}
+        aria-busy={loading || undefined}
+        className={classes}
+      >
+        {loading ? <Spinner /> : null}
+        {children}
+      </Link>
+    );
+  }
+
+  const {
+    type,
+    disabled,
+    variant: _variant,
+    loading: _loading,
+    className: _className,
+    children: _children,
+    href: _href,
+    ...buttonRest
+  } = props;
+  void _variant;
+  void _loading;
+  void _className;
+  void _children;
+  void _href;
   return (
     <button
-      {...rest}
+      {...buttonRest}
       type={type ?? "button"}
       disabled={disabled || loading}
       aria-busy={loading}

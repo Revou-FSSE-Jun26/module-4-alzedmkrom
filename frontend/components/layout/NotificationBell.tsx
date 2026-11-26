@@ -5,13 +5,24 @@ import { useRouter } from "next/navigation";
 import { BaseBadge } from "@/components/shared/BaseBadge";
 import { BaseButton } from "@/components/shared/BaseButton";
 import { useNotifications } from "@/hooks/useNotifications";
-import { sortByCreatedAt } from "@/lib/collections";
 import { formatDateTime, formatUnreadCount } from "@/lib/format";
+import type { Notification } from "@/types/api";
 
-// Bell button with an unread count and a list of the signed-in user's notifications (Requirement 18).
+// Types whose board no longer opens for the user, so they do not link (FE-NTF-02).
+const NON_LINKING_TYPES = new Set<Notification["type"]>(["board_deleted", "member_removed"]);
+
+/** The board a notification links to, or null when it has no usable link (FE-NTF-02). */
+export function notificationHref(notification: Notification): string | null {
+  if (notification.board_id === null || NON_LINKING_TYPES.has(notification.type)) {
+    return null;
+  }
+  return `/boards/${notification.board_id}`;
+}
+
+// Bell with the unread count from the API and a list of notifications as plain text (FE-NTF-02).
 export function NotificationBell() {
   const router = useRouter();
-  const { items, unreadCount, markAsRead } = useNotifications();
+  const { notifications, unreadCount, markRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const badgeText = formatUnreadCount(unreadCount);
@@ -20,7 +31,6 @@ export function NotificationBell() {
     if (!open) {
       return;
     }
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
@@ -32,7 +42,6 @@ export function NotificationBell() {
         setOpen(false);
       }
     };
-
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("mousedown", handlePointerDown);
     return () => {
@@ -41,20 +50,26 @@ export function NotificationBell() {
     };
   }, [open]);
 
-  const handleSelect = (id: string, boardId: string, isRead: boolean) => {
-    // markAsRead handles its own failures, so the navigation does not wait for the PATCH.
-    if (!isRead) {
-      void markAsRead(id);
+  const handleSelect = (notification: Notification) => {
+    if (!notification.is_read) {
+      // markRead handles its own failures, so navigation does not wait for the PATCH.
+      void markRead(notification.id);
     }
-    router.push(`/boards/${boardId}`);
+    const href = notificationHref(notification);
     setOpen(false);
+    if (href !== null) {
+      router.push(href);
+    }
   };
+
+  const label =
+    unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications";
 
   return (
     <div ref={containerRef} className="relative">
       <BaseButton
         variant="secondary"
-        aria-label="Notifications"
+        aria-label={label}
         aria-expanded={open}
         onClick={() => setOpen((previous) => !previous)}
         className="relative px-2"
@@ -73,34 +88,29 @@ export function NotificationBell() {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {badgeText !== null ? (
-          <BaseBadge color="red" className="absolute -right-2 -top-2">
+          <span className="absolute -right-2 -top-2 rounded-full bg-red-600 px-1.5 text-xs font-medium text-white">
             {badgeText}
-          </BaseBadge>
+          </span>
         ) : null}
       </BaseButton>
-
       {open ? (
         <div className="absolute right-0 z-20 mt-2 max-h-96 w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-md border border-gray-200 bg-white p-2 shadow-lg">
-          {items.length === 0 ? (
-            <p className="px-2 py-1 text-sm text-gray-600">No notifications</p>
+          {notifications.length === 0 ? (
+            <p className="px-2 py-1 text-base text-gray-600">No notifications</p>
           ) : (
             <ul className="flex flex-col gap-1">
-              {sortByCreatedAt(items, "desc").map((notification) => (
+              {notifications.map((notification) => (
                 <li key={notification.id}>
                   <BaseButton
                     variant="secondary"
-                    onClick={() =>
-                      handleSelect(notification.id, notification.board_id, notification.is_read)
-                    }
+                    onClick={() => handleSelect(notification)}
                     className="flex w-full flex-col items-start gap-1 text-left"
                   >
                     <span className="flex w-full items-center justify-between gap-2">
-                      <span className="text-sm text-gray-900">{notification.message}</span>
-                      {!notification.is_read ? (
-                        <BaseBadge color="blue">Unread</BaseBadge>
-                      ) : null}
+                      <span className="text-base text-gray-900">{notification.message}</span>
+                      {!notification.is_read ? <BaseBadge color="blue">Unread</BaseBadge> : null}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-sm text-gray-600">
                       {formatDateTime(notification.created_at)}
                     </span>
                   </BaseButton>
