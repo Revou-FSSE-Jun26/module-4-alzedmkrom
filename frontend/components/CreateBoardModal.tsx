@@ -8,10 +8,10 @@ import { FormField } from "@/components/shared/FormField";
 import { useApi } from "@/hooks/useApi";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { success as showSuccessToast } from "@/lib/toast";
-import type { Board } from "@/lib/types";
-import { validateRequiredText } from "@/lib/validation";
+import type { Board } from "@/types/api";
+import { LIMITS, validateRequiredText } from "@/lib/validation";
 
-const BOARD_NAME_MAX = 255;
+
 
 // Dashboard trigger and dialog for creating a board (Requirement 9.3 to 9.6).
 export function CreateBoardModal() {
@@ -40,7 +40,7 @@ export function CreateBoardModal() {
       return;
     }
 
-    const validationError = validateRequiredText("Name", name, BOARD_NAME_MAX);
+    const validationError = validateRequiredText("Name", name, LIMITS.boardName);
     setNameError(validationError);
     if (validationError !== null) {
       return;
@@ -76,7 +76,7 @@ export function CreateBoardModal() {
                 autoComplete="off"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 aria-[invalid=true]:border-red-600"
+                className="rounded-md border border-gray-300 px-3 py-2 text-base text-gray-900 aria-[invalid=true]:border-red-600"
               />
             )}
           </FormField>

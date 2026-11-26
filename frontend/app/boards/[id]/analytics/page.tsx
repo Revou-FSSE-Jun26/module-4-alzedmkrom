@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AnalyticsPanel } from "@/components/AnalyticsPanel";
+import { AnalyticsPanel } from "@/components/board/AnalyticsPanel";
 import { ApiError } from "@/lib/errors";
 import { serverApi } from "@/lib/serverApi";
-import type { Analytics } from "@/lib/types";
+import type { Analytics } from "@/types/api";
 
 // Board analytics page (Requirements 20.1, 20.5, 20.7, 23.1). A Server Component that loads
 // the analytics once. serverApi.get redirects on 401 by throwing, so the catch below handles

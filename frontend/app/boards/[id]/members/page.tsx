@@ -1,45 +1,33 @@
 import { notFound, redirect } from "next/navigation";
-import { MemberList } from "@/components/MemberList";
+import { MemberList } from "@/components/board/MemberList";
 import { NotMemberMessage } from "@/components/NotMemberMessage";
 import { ApiError } from "@/lib/errors";
 import { serverApi } from "@/lib/serverApi";
 import { getServerSession } from "@/lib/serverSession";
-import type { Member } from "@/lib/types";
+import { loginPath } from "@/lib/session";
+import type { Items, Member } from "@/types/api";
 
-// Board members page (Requirements 19.1, 19.11, 23.1). A Server Component that loads the
-// members and the cached session in parallel. serverApi.get redirects on 401 by throwing,
-// so the catch below rethrows anything that is not a 404 or 403 ApiError. The notFound()
-// and redirect() calls sit outside the try block.
+// Board members (FE-PAGE-07). Members and Admins can view the list. Admins manage it.
+// serverApi.get redirects on 401 by throwing, so the catch below handles only 404 and 403.
 export default async function BoardMembersPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const membersPath = `/api/boards/${encodeURIComponent(id)}/members`;
+  const session = await getServerSession();
+  if (session.user === null) {
+    redirect(loginPath({ next: `/boards/${id}/members` }));
+  }
 
-  let loaded: [Member[], Awaited<ReturnType<typeof getServerSession>>] | 404 | 403;
+  let members: Member[];
   try {
-    loaded = await Promise.all([
-      serverApi.get<Member[]>(membersPath),
-      getServerSession(),
-    ]);
+    members = (await serverApi.get<Items<Member>>(membersPath)).items;
   } catch (error) {
     if (error instanceof ApiError && error.statusCode === 404) {
-      loaded = 404;
-    } else if (error instanceof ApiError && error.statusCode === 403) {
-      loaded = 403;
-    } else {
-      throw error;
+      notFound();
     }
-  }
-
-  if (loaded === 404) {
-    notFound();
-  }
-  if (loaded === 403) {
-    return <NotMemberMessage />;
-  }
-
-  const [members, session] = loaded;
-  if (session.user === null) {
-    redirect("/login?reason=session-expired");
+    if (error instanceof ApiError && error.statusCode === 403) {
+      return <NotMemberMessage />;
+    }
+    throw error;
   }
 
   const currentUserId = session.user.id;

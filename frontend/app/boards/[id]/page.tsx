@@ -1,34 +1,36 @@
 import { notFound } from "next/navigation";
-import { BoardView } from "@/components/BoardView";
-import { NotMemberMessage } from "@/components/NotMemberMessage";
+import { BoardView } from "@/components/board/BoardView";
 import { ApiError } from "@/lib/errors";
 import { serverApi } from "@/lib/serverApi";
-import type { BoardDetail, Member } from "@/lib/types";
+import { rolesFor } from "@/lib/roles";
+import type { BoardDetail, Items, Member } from "@/types/api";
 
-// Board page (Requirements 10.1, 10.5, 10.6, 10.13, 13.12, 23.1, 23.3). A Server Component
-// that loads the board and its members, then hands them to the interactive BoardView.
-// serverApi.get redirects on 401 by throwing, so the catch below rethrows anything that
-// is not a 404 or 403 ApiError. Unhandled errors reach app/error.tsx.
+// Board page (FE-PAGE-03). Anonymous visitors and Guests read public boards through the optional-auth
+// fetch. The members list is requested only for Members and Admins (FE-PAGE-07), so a Guest never
+// sees a 403 for a page they can read.
 export default async function BoardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const boardPath = `/api/boards/${encodeURIComponent(id)}`;
 
-  // Both requests start before either one is awaited.
-  const boardRequest = serverApi.get<BoardDetail>(boardPath);
-  const membersRequest = serverApi.get<Member[]>(`${boardPath}/members`);
-
   let board: BoardDetail;
-  let members: Member[];
   try {
-    [board, members] = await Promise.all([boardRequest, membersRequest]);
+    board = await serverApi.getOptional<BoardDetail>(boardPath);
   } catch (error) {
     if (error instanceof ApiError && error.statusCode === 404) {
       notFound();
     }
-    if (error instanceof ApiError && error.statusCode === 403) {
-      return <NotMemberMessage />;
-    }
     throw error;
+  }
+
+  let members: Member[] = [];
+  if (rolesFor(board.my_role).canWrite) {
+    try {
+      members = (await serverApi.get<Items<Member>>(`${boardPath}/members`)).items;
+    } catch (error) {
+      if (!(error instanceof ApiError && error.statusCode === 403)) {
+        throw error;
+      }
+    }
   }
 
   return <BoardView initialBoard={board} members={members} />;
