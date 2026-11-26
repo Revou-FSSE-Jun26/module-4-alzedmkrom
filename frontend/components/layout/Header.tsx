@@ -3,11 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { BaseButton } from "@/components/shared/BaseButton";
-import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import { useAuth } from "@/context/AuthContext";
 
 const NAV_LINK_CLASSES =
-  "rounded-md px-2 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900";
+  "rounded-md px-2 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900";
 
 // Top bar on every Protected_Path page: brand, navigation, Notification_Bell and logout (Requirements 2.5, 18.10, 21).
 export function Header() {
@@ -34,7 +34,7 @@ export function Header() {
           <Link href="/profile" className={NAV_LINK_CLASSES}>
             Profile
           </Link>
-          <span className="px-2 py-2 text-sm text-gray-600">{user?.name}</span>
+          <span className="px-2 py-2 text-base text-gray-600">{user?.name}</span>
           <BaseButton variant="secondary" onClick={() => logout()}>
             Log out
           </BaseButton>

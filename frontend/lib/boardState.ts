@@ -1,22 +1,25 @@
-// Board state for the board detail page. The reducer is pure: every action
-// returns a new state object and never mutates its input. Columns and cards
-// are kept sorted by `order` ascending.
-
+// Board state for the board detail page. The reducer is pure: every action returns a new
+// state object and never mutates its input. Columns and cards stay sorted by `order`.
 import { sortByOrder } from "./collections";
-import type { BoardDetail, Card, Column, ColumnWithCards, Role } from "./types";
+import type { BoardDetail, Card, Column, BoardRole } from "@/types/api";
+
+/** A column with its cards as a plain list (the API nests them in `{items}`). */
+export interface BoardColumn extends Column {
+  cards: Card[];
+}
 
 export interface BoardState {
-  board: { id: string; name: string; role: Role; owner_id: string };
-  columns: ColumnWithCards[];
+  board: { id: string; name: string; is_public: boolean; my_role: BoardRole; created_by: string | null };
+  columns: BoardColumn[];
 }
 
 export type BoardAction =
   | { type: "board/renamed"; name: string }
-  | { type: "column/added"; column: ColumnWithCards }
+  | { type: "column/added"; column: Column }
   | { type: "column/renamed"; column: Column }
   | { type: "column/removed"; columnId: string }
   | { type: "column/moved"; columnId: string; order: number }
-  | { type: "columns/orders-applied"; columns: Column[] }
+  | { type: "columns/orders-applied"; columns: { id: string; order: number }[] }
   | { type: "card/added"; columnId: string; card: Card }
   | { type: "card/replaced"; card: Card }
   | { type: "card/removed"; cardId: string }
@@ -26,10 +29,16 @@ export type BoardAction =
 
 export function initBoardState(detail: BoardDetail): BoardState {
   return {
-    board: { id: detail.id, name: detail.name, role: detail.role, owner_id: detail.owner_id },
-    columns: sortByOrder(detail.columns).map((column) => ({
+    board: {
+      id: detail.id,
+      name: detail.name,
+      is_public: detail.is_public,
+      my_role: detail.my_role,
+      created_by: detail.created_by,
+    },
+    columns: sortByOrder(detail.columns.items).map(({ cards, ...column }) => ({
       ...column,
-      cards: sortByOrder(column.cards),
+      cards: sortByOrder(cards.items),
     })),
   };
 }
@@ -38,29 +47,25 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
   switch (action.type) {
     case "board/renamed":
       return { ...state, board: { ...state.board, name: action.name } };
-
     case "column/added":
       return {
         ...state,
         columns: sortByOrder([...state.columns, { ...action.column, cards: [] }]),
       };
-
     case "column/renamed":
       return {
         ...state,
         columns: state.columns.map((column) =>
           column.id === action.column.id
-            ? { ...column, title: action.column.title, updated_at: action.column.updated_at }
+            ? { ...column, name: action.column.name, updated_at: action.column.updated_at }
             : column,
         ),
       };
-
     case "column/removed":
       return {
         ...state,
         columns: state.columns.filter((column) => column.id !== action.columnId),
       };
-
     case "column/moved":
       return {
         ...state,
@@ -70,7 +75,6 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
           ),
         ),
       };
-
     case "columns/orders-applied": {
       const orders = new Map(action.columns.map((column) => [column.id, column.order]));
       return {
@@ -83,7 +87,6 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
         ),
       };
     }
-
     case "card/added":
       return {
         ...state,
@@ -92,7 +95,6 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
           cards: sortByOrder([...column.cards, action.card]),
         })),
       };
-
     case "card/replaced":
       return {
         ...state,
@@ -101,7 +103,6 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
           cards: column.cards.map((card) => (card.id === action.card.id ? action.card : card)),
         })),
       };
-
     case "card/removed":
       return {
         ...state,
@@ -110,14 +111,13 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
           cards: column.cards.filter((card) => card.id !== action.cardId),
         })),
       };
-
     case "card/moved": {
       const found = findCard(state, action.cardId);
       const targetExists = state.columns.some((column) => column.id === action.toColumnId);
       if (found === null || !targetExists) {
         return { ...state };
       }
-      const movedCard: Card = { ...found.card, order: action.order };
+      const movedCard: Card = { ...found.card, order: action.order, column_id: action.toColumnId };
       return {
         ...state,
         columns: state.columns.map((column) => {
@@ -127,7 +127,6 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
         }),
       };
     }
-
     case "cards/orders-applied": {
       const orders = new Map(action.orders.map((entry) => [entry.id, entry.order]));
       return {
@@ -143,7 +142,6 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
         })),
       };
     }
-
     case "state/restored":
       return action.snapshot;
   }
@@ -162,8 +160,8 @@ export function findCard(
   return null;
 }
 
-// Cards whose id is in `searchIds`, in their original order. `null` means no
-// search is active, so every card is returned.
+// Cards whose id is in `searchIds`, in their original order. `null` means no search is
+// active, so every card is returned.
 export function visibleCards(
   cards: readonly Card[],
   searchIds: ReadonlySet<string> | null,
@@ -177,7 +175,7 @@ export function visibleCards(
 function mapColumn(
   state: BoardState,
   columnId: string,
-  update: (column: ColumnWithCards) => ColumnWithCards,
-): ColumnWithCards[] {
+  update: (column: BoardColumn) => BoardColumn,
+): BoardColumn[] {
   return state.columns.map((column) => (column.id === columnId ? update(column) : column));
 }

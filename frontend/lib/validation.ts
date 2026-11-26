@@ -1,18 +1,29 @@
-import type { Card, User } from './types'
+import type { Card, User } from '@/types/api'
 
-// Pure client-side validation. Each validator returns `null` when the value is
-// valid, or the message to show. Object validators return `FieldErrors`, which
-// holds only the keys that failed. The API stays the final judge.
+// Pure client-side validation (FE-FRM-02). Limits mirror the column lengths in
+// database.md DB-SCH-01, and the password rule mirrors backend.md BE-VAL-05. The API
+// stays the final judge: a 422 `details` response is mapped onto these fields.
+// Each validator returns `null` when valid, or the message to show.
 
 export const LIMITS = {
-  name: 255,
+  /** users.name (DB-SCH-01). */
+  name: 100,
+  /** boards.name and columns.name (DB-SCH-01). */
+  boardName: 100,
+  columnName: 100,
+  /** cards.title (DB-SCH-01). */
+  title: 200,
+  /** cards.description (DB-SCH-01 CHECK). */
+  description: 5000,
+  /** comments.content (DB-SCH-01 CHECK). */
+  comment: 2000,
+  /** users.email (DB-SCH-01). */
   emailMin: 3,
-  emailMax: 254,
+  emailMax: 255,
+  /** BE-VAL-05. */
   passwordMin: 8,
   passwordMax: 128,
-  title: 255,
-  description: 10_000,
-  comment: 5_000,
+  /** Search box length. Not a stored field. */
   search: 200,
 } as const
 
@@ -33,13 +44,12 @@ export interface ProfileFieldValues {
   email: string
 }
 
-/** Length in Unicode code points, matching Python `str` length on the API (F5). */
+/** Length in Unicode code points, matching Python `str` length on the API. */
 export const codePointLength = (value: string): number => [...value].length
 
 /**
- * Requirement 3.2 grammar (F6): exactly one `@`, at least one character before
- * it, and a domain after it that has a `.` which is neither its first nor its
- * last character. No whitespace anywhere. Expects a trimmed value.
+ * Exactly one `@`, at least one character before it, and a domain with a `.` that is
+ * neither its first nor its last character. No whitespace. Expects a trimmed value.
  */
 export function isValidEmail(trimmed: string): boolean {
   if (/\s/.test(trimmed)) {
@@ -56,7 +66,7 @@ export function isValidEmail(trimmed: string): boolean {
   return domain.slice(1, -1).includes('.')
 }
 
-/** Trims `raw`, then checks the 3 to 254 code point length and the grammar. */
+/** Trims `raw`, then checks the length range and the format. */
 export function validateEmail(raw: string): string | null {
   const trimmed = raw.trim()
   const length = codePointLength(trimmed)
@@ -76,7 +86,7 @@ export function validateRegister(v: {
   password: string
 }): FieldErrors<'name' | 'email' | 'password'> {
   const errors: FieldErrors<'name' | 'email' | 'password'> = {}
-  const nameLength = codePointLength(v.name)
+  const nameLength = codePointLength(v.name.trim())
   if (nameLength < 1 || nameLength > LIMITS.name) {
     errors.name = `Name must be 1 to ${LIMITS.name} characters.`
   }
@@ -106,7 +116,7 @@ export function validateLogin(v: {
   return errors
 }
 
-/** Name is trimmed and must be 1 to 255 characters. Email follows `validateEmail`. */
+/** Name is trimmed and must be 1 to 100 characters. Email follows `validateEmail`. */
 export function validateProfile(v: { name: string; email: string }): FieldErrors<'name' | 'email'> {
   const errors: FieldErrors<'name' | 'email'> = {}
   const nameError = validateRequiredText('Name', v.name, LIMITS.name)
@@ -140,15 +150,14 @@ export function validateOptionalText(label: string, raw: string, max: number): s
   return null
 }
 
-/** Non-whitespace and at most 5000 characters after trimming. */
+/** Non-whitespace and at most 2000 characters after trimming (DB-SCH-01). */
 export function validateComment(raw: string): string | null {
   return validateRequiredText('Comment', raw, LIMITS.comment)
 }
 
 /**
- * Returns the card fields whose value differs from the card. The values are
- * compared as given, so callers pass trimmed `title` values. `description` is
- * compared with `card.description ?? ''`, and `completed` with
+ * Returns the card fields whose value differs from the card. Callers pass trimmed `title`
+ * values. `description` is compared with `card.description ?? ''`, and `completed` with
  * `card.completed_at !== null`.
  */
 export function changedCardFields(card: Card, values: CardFieldValues): CardField[] {

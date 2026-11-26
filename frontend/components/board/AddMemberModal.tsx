@@ -7,11 +7,11 @@ import { FormField } from "@/components/shared/FormField";
 import { useApi } from "@/hooks/useApi";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { success as showSuccessToast } from "@/lib/toast";
-import type { Member, Role } from "@/lib/types";
+import type { Member, MemberRole } from "@/types/api";
 import { LIMITS, validateEmail } from "@/lib/validation";
 
 const INPUT_CLASSES =
-  "rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 aria-[invalid=true]:border-red-600";
+  "rounded-md border border-gray-300 px-3 py-2 text-base text-gray-900 aria-[invalid=true]:border-red-600";
 
 export interface AddMemberModalProps {
   boardId: string;
@@ -25,7 +25,7 @@ export function AddMemberModal({ boardId, onAdded }: AddMemberModalProps) {
 
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<Role>("member");
+  const [role, setRole] = useState<MemberRole>("member");
   const [emailError, setEmailError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -98,7 +98,7 @@ export function AddMemberModal({ boardId, onAdded }: AddMemberModalProps) {
                 {...control}
                 name="role"
                 value={role}
-                onChange={(event) => setRole(event.target.value as Role)}
+                onChange={(event) => setRole(event.target.value as MemberRole)}
                 className={INPUT_CLASSES}
               >
                 <option value="member">member</option>

@@ -7,39 +7,50 @@ import { BaseBadge } from "@/components/shared/BaseBadge";
 import { BaseButton } from "@/components/shared/BaseButton";
 import { BaseModal } from "@/components/shared/BaseModal";
 import { ConfirmModal } from "@/components/shared/ConfirmModal";
+import { FormAlert } from "@/components/shared/FormAlert";
 import { FormField } from "@/components/shared/FormField";
 import { useApi } from "@/hooks/useApi";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
+import { ApiError } from "@/lib/errors";
+import { mapFieldDetails } from "@/lib/formErrors";
+import { rolesFor } from "@/lib/roles";
 import { success as showSuccessToast } from "@/lib/toast";
-import type { Board, Role } from "@/lib/types";
-import { validateRequiredText } from "@/lib/validation";
+import { LIMITS, validateRequiredText } from "@/lib/validation";
+import type { Board, BoardRole } from "@/types/api";
 
-const BOARD_NAME_MAX = 255;
+const LINK_CLASSES = "text-base font-medium text-blue-700 underline-offset-2 hover:underline";
 
 export interface BoardHeaderProps {
-  board: { id: string; name: string; role: Role };
+  board: { id: string; name: string; my_role: BoardRole };
   onRenamed(name: string): void;
 }
 
-// Board title, role badge and board-level actions (Requirements 10.7 to 10.12).
-// Only a board admin sees the rename and delete buttons and the analytics link.
+const ROLE_LABELS: Record<BoardRole, string> = {
+  anonymous: "Public viewer",
+  guest: "Guest",
+  member: "Member",
+  admin: "Admin",
+};
+
+// Board title, role badge and board-level actions (FE-ROLE-01). Admin-only controls are the
+// rename, delete, and analytics actions. Members see the member list.
 export function BoardHeader({ board, onRenamed }: BoardHeaderProps) {
   const router = useRouter();
   const api = useApi();
   const handleError = useErrorHandler();
-  const isAdmin = board.role === "admin";
-
+  const roles = rolesFor(board.my_role);
   const [renameOpen, setRenameOpen] = useState(false);
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [renamePending, setRenamePending] = useState(false);
-
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePending, setDeletePending] = useState(false);
 
   function openRename() {
     setName(board.name);
     setNameError(null);
+    setFormError(null);
     setRenameOpen(true);
   }
 
@@ -52,20 +63,27 @@ export function BoardHeader({ board, onRenamed }: BoardHeaderProps) {
     if (renamePending) {
       return;
     }
-    const validationError = validateRequiredText("Name", name, BOARD_NAME_MAX);
+    const validationError = validateRequiredText("Name", name, LIMITS.boardName);
     setNameError(validationError);
+    setFormError(null);
     if (validationError !== null) {
       return;
     }
     setRenamePending(true);
     try {
-      const updated = await api.patch<Board>("/api/boards/" + board.id, { name: name.trim() });
+      const updated = await api.patch<Board>(`/api/boards/${board.id}`, { name: name.trim() });
       setRenamePending(false);
       onRenamed(updated.name);
       setRenameOpen(false);
       showSuccessToast("Board renamed.");
     } catch (caught) {
       setRenamePending(false);
+      if (caught instanceof ApiError && caught.statusCode === 422 && caught.details !== null) {
+        const { mapped, unmatched } = mapFieldDetails(caught, ["name"] as const);
+        setNameError(mapped.name ?? null);
+        setFormError(unmatched.length > 0 ? unmatched.join(" ") : null);
+        return;
+      }
       handleError(caught);
     }
   }
@@ -76,7 +94,7 @@ export function BoardHeader({ board, onRenamed }: BoardHeaderProps) {
     }
     setDeletePending(true);
     try {
-      await api.delete<{ id: string }>("/api/boards/" + board.id);
+      await api.delete<void>(`/api/boards/${board.id}`);
       setDeletePending(false);
       setDeleteOpen(false);
       showSuccessToast("Board deleted.");
@@ -90,19 +108,15 @@ export function BoardHeader({ board, onRenamed }: BoardHeaderProps) {
   return (
     <header className="flex flex-wrap items-center gap-3">
       <h1 className="min-w-0 break-words text-2xl font-semibold text-gray-900">{board.name}</h1>
-      <BaseBadge color={isAdmin ? "blue" : "gray"}>{board.role}</BaseBadge>
-      <Link
-        href={"/boards/" + board.id + "/members"}
-        className="text-sm font-medium text-blue-700 underline-offset-2 hover:underline"
-      >
-        Members
-      </Link>
-      {isAdmin ? (
+      <BaseBadge color={roles.canManage ? "blue" : "gray"}>{ROLE_LABELS[board.my_role]}</BaseBadge>
+      {roles.canWrite ? (
+        <Link href={`/boards/${board.id}/members`} className={LINK_CLASSES}>
+          Members
+        </Link>
+      ) : null}
+      {roles.canManage ? (
         <>
-          <Link
-            href={"/boards/" + board.id + "/analytics"}
-            className="text-sm font-medium text-blue-700 underline-offset-2 hover:underline"
-          >
+          <Link href={`/boards/${board.id}/analytics`} className={LINK_CLASSES}>
             Analytics
           </Link>
           <BaseButton variant="secondary" onClick={openRename}>
@@ -111,13 +125,9 @@ export function BoardHeader({ board, onRenamed }: BoardHeaderProps) {
           <BaseButton variant="destructive" onClick={() => setDeleteOpen(true)}>
             Delete board
           </BaseButton>
-        </>
-      ) : null}
-
-      {isAdmin ? (
-        <>
           <BaseModal open={renameOpen} title="Rename board" onClose={closeRename}>
             <form className="flex flex-col gap-4" noValidate onSubmit={handleRename}>
+              <FormAlert message={formError} />
               <FormField label="Name" error={nameError}>
                 {(control) => (
                   <input
@@ -126,8 +136,11 @@ export function BoardHeader({ board, onRenamed }: BoardHeaderProps) {
                     name="name"
                     autoComplete="off"
                     value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 aria-[invalid=true]:border-red-600"
+                    onChange={(event) => {
+                      setName(event.target.value);
+                      setNameError(null);
+                    }}
+                    className="rounded-md border border-gray-300 px-3 py-2 text-base text-gray-900 aria-[invalid=true]:border-red-600"
                   />
                 )}
               </FormField>
@@ -141,7 +154,6 @@ export function BoardHeader({ board, onRenamed }: BoardHeaderProps) {
               </div>
             </form>
           </BaseModal>
-
           <ConfirmModal
             open={deleteOpen}
             title="Delete board"

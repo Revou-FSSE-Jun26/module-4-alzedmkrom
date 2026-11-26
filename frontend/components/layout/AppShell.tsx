@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { Header } from "@/components/Header";
+import { Header } from "@/components/layout/Header";
 
 const BARE_PATHS = ["/login", "/register"];
 

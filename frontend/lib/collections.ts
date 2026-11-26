@@ -1,3 +1,4 @@
+import type { AssignedCard } from "@/types/api";
 // Pure sorting and bar-scaling helpers. Every sort returns a new array and
 // leaves its input untouched. Array.prototype.sort is stable (ES2019+), so
 // items with equal keys keep their input order.
@@ -27,3 +28,30 @@ export function barPercentages(counts: readonly number[]): number[] {
   }
   return counts.map((count) => (count / max) * 100);
 }
+
+// Groups a flat page of assigned cards by board, keeping the order the API returned (FE-PAGE-05).
+interface MyTasksGroup {
+  board_id: string;
+  board_name: string;
+  cards: AssignedCard[];
+}
+
+// Groups a flat page of assigned cards by board, keeping the order the API returned (FE-PAGE-05).
+export function groupByBoard(cards: readonly AssignedCard[]): MyTasksGroup[] {
+  const groups = new Map<string, MyTasksGroup>();
+  for (const card of cards) {
+    const existing = groups.get(card.board_id);
+    if (existing === undefined) {
+      groups.set(card.board_id, {
+        board_id: card.board_id,
+        board_name: card.board_name,
+        cards: [card],
+      });
+    } else {
+      existing.cards.push(card);
+    }
+  }
+  return [...groups.values()];
+}
+
+
