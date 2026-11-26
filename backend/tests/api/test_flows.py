@@ -34,13 +34,14 @@ def test_last_admin_cannot_be_demoted_or_removed(admin_client, board, people):
     assert error_code(response) == "LAST_ADMIN"
 
 
-def test_admin_deleting_member_card_leaves_no_notification_row_for_it(
+def test_admin_deleting_member_card_notifies_creator_not_actor(
     admin_client, column, make_card, people
 ):
-    # card_deleted is not in the database CHECK list, so no notification is written (see report).
     card = make_card(column, people["member"])
     admin_client.delete(f"/api/cards/{card.id}")
-    assert db.session.query(Notification).count() == 0
+    rows = db.session.query(Notification).all()
+    assert any(n.user_id == people["member"].id and n.type == "card_deleted" for n in rows)
+    assert all(n.user_id != people["admin"].id for n in rows)
     assert db.session.get(Card, card.id).deleted_at is not None
 
 

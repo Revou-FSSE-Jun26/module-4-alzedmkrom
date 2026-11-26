@@ -14,7 +14,7 @@ class Notification(UUIDPrimaryKeyMixin, CreatedAtMixin, db.Model):
         db.ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
-    # OD-1: the baseline list. BE-NTF-03 in backend.md must match it.
+    # The ten types of backend.md BE-NTF-03 (migration 0003 extends the CHECK).
     type = db.Column(db.String(30), nullable=False)
     message = db.Column(db.String(500), nullable=False)
     board_id = db.Column(UUID(as_uuid=True), nullable=True)
@@ -24,7 +24,7 @@ class Notification(UUIDPrimaryKeyMixin, CreatedAtMixin, db.Model):
 
     __table_args__ = (
         db.CheckConstraint(
-            "type IN ('card_assigned', 'card_moved', 'comment_added', 'member_added')",
+            "type IN ('card_assigned', 'card_moved', 'comment_added', 'member_added', 'card_created', 'card_deleted', 'column_deleted', 'board_deleted', 'member_role_changed', 'member_removed')",
             name="type",
         ),
         db.CheckConstraint("char_length(message) BETWEEN 1 AND 500", name="message_length"),

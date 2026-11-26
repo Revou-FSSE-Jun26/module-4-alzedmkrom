@@ -109,6 +109,16 @@ def update_board(user, board_id, payload):
 def delete_board(user, board_id):
     board = load_board(board_id)
     authorize(user, "board:delete", board)
+    member_ids = db.session.scalars(
+        select(BoardMember.user_id).where(BoardMember.board_id == board.id)
+    ).all()
+    notify(
+        member_ids,
+        type="board_deleted",
+        message=f'The board "{board.name}" was deleted.',
+        board_id=board.id,
+        actor_id=user.id,
+    )
     db.session.delete(board)
 
 
@@ -181,6 +191,21 @@ def update_member(user, board_id, target_user_id, payload):
         raise NotFound("Member not found.")
     if member.role == ADMIN and data["role"] != ADMIN and len(admins) <= 1:
         raise Conflict("A board must keep at least one Admin.", code="LAST_ADMIN")
+    admin_ids = [a for a in board_admin_ids(board.id) if a != target_user_id]
+    notify(
+        [target_user_id],
+        type="member_role_changed",
+        message=f'Your role on the board "{board.name}" is now {data["role"]}.',
+        board_id=board.id,
+        actor_id=user.id,
+    )
+    notify(
+        admin_ids,
+        type="member_role_changed",
+        message=f'The role of a member of "{board.name}" was changed to {data["role"]}.',
+        board_id=board.id,
+        actor_id=user.id,
+    )
     member.role = data["role"]
     person = db.session.get(User, target_user_id)
     return member, person
@@ -201,6 +226,21 @@ def remove_member(user, board_id, target_user_id):
         .where(Card.board_id == board.id, Card.assignee_id == target_user_id)
         .values(assignee_id=None)
         .execution_options(synchronize_session=False)
+    )
+    admin_ids = [a for a in board_admin_ids(board.id) if a != target_user_id]
+    notify(
+        [target_user_id],
+        type="member_removed",
+        message=f'You were removed from the board "{board.name}".',
+        board_id=board.id,
+        actor_id=user.id,
+    )
+    notify(
+        admin_ids,
+        type="member_removed",
+        message=f'A member was removed from the board "{board.name}".',
+        board_id=board.id,
+        actor_id=user.id,
     )
     db.session.delete(member)
 

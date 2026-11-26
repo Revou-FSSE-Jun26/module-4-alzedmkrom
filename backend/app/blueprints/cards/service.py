@@ -50,6 +50,14 @@ def create_card(user, column_id, payload):
     )
     db.session.add(card)
     db.session.flush()
+    admin_ids = [a for a in board_admin_ids(board.id) if a != assignee_id]
+    notify(
+        admin_ids,
+        type="card_created",
+        message=f'A card "{card.title}" was created.',
+        board_id=board.id,
+        actor_id=user.id,
+    )
     if assignee_id is not None:
         notify(
             [assignee_id],
@@ -134,7 +142,25 @@ def delete_card(user, card_id):
     card = load_card(card_id)
     board = load_board(card.board_id)
     authorize(user, "card:delete", board, card)
+    creator = card.created_by
+    title = card.title
+    admin_ids = [a for a in board_admin_ids(board.id) if a != creator]
     card.soft_delete()
+    if creator is not None and creator != user.id:
+        notify(
+            [creator],
+            type="card_deleted",
+            message=f'Your card "{title}" was deleted by an administrator.',
+            board_id=board.id,
+            actor_id=user.id,
+        )
+    notify(
+        admin_ids,
+        type="card_deleted",
+        message=f'The card "{title}" was deleted.',
+        board_id=board.id,
+        actor_id=user.id,
+    )
 
 
 def list_assigned(user, payload):

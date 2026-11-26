@@ -8,7 +8,8 @@ from app.errors import Conflict, NotFound
 from app.extensions import db
 from app.models import BoardColumn, Card
 from app.ordering import end_order, plan_order
-from app.permissions import MEMBER, authorize, load_board, load_column
+from app.blueprints.notifications.service import notify
+from app.permissions import ADMIN, MEMBER, authorize, load_board, load_column
 from app.schemas import parse
 from app.transactions import lock_board, transactional
 
@@ -121,4 +122,12 @@ def delete_column(user, column_id):
                 code="COLUMN_HAS_FOREIGN_WORK",
                 details={"cards": foreign},
             )
+    if role == ADMIN and column.created_by is not None and column.created_by != user.id:
+        notify(
+            [column.created_by],
+            type="column_deleted",
+            message=f'Your column "{column.name}" was deleted by an administrator.',
+            board_id=board.id,
+            actor_id=user.id,
+        )
     db.session.delete(column)

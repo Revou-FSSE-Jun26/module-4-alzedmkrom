@@ -13,8 +13,8 @@ from sqlalchemy import text
 
 from tests.database.conftest import make_app, migrations_dir
 
-HEAD = "0002_v4_schema"
-BASE_V3 = "0001_initial_schema"
+HEAD = "0003_notification_types"
+BASE_V3 = "0002_v4_schema"
 
 
 def _snapshot(engine):

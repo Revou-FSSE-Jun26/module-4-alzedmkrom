@@ -12,7 +12,11 @@ from app.extensions import db
 from app.models import Notification
 from app.pagination import paginate
 
-STORED_TYPES = frozenset({"card_assigned", "card_moved", "comment_added", "member_added"})
+STORED_TYPES = frozenset({
+    "card_assigned", "card_moved", "comment_added", "member_added",
+    "card_created", "card_deleted", "column_deleted", "board_deleted",
+    "member_role_changed", "member_removed",
+})
 MESSAGE_MAX = 500
 
 
