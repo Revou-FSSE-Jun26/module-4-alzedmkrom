@@ -1,9 +1,9 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CardFormModal } from '@/components/CardFormModal';
+import { CardFormModal } from '@/components/board/CardFormModal';
 import { renderWithAuth } from '../helpers/renderWithAuth';
-import type { Card, Member } from '@/lib/types';
+import type { Card, Member } from '@/types/api';
 
 const members: Member[] = [
   { user_id: 'u-2', name: 'Bea', email: 'bea@example.com', role: 'member', created_at: '2026-01-01T00:00:00Z' },
@@ -12,14 +12,17 @@ const members: Member[] = [
 
 const createdCard: Card = {
   id: 'card-1',
+  board_id: 'board-1',
+  column_id: 'col-7',
   title: 'Write docs',
   description: null,
   assignee_id: 'u-3',
-  created_by: 'user-1',
+  assignee: { id: 'u-3', name: 'Cal' },
+  due_date: null,
   order: 1,
   completed_at: null,
+  created_by: 'user-1',
   created_at: '2026-01-01T00:00:00Z',
-  updated_at: '2026-01-01T00:00:00Z',
 };
 
 function renderModal(overrides: Partial<React.ComponentProps<typeof CardFormModal>> = {}) {
@@ -70,22 +73,22 @@ describe('CardFormModal', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('rejects a description longer than 10,000 characters without sending a request', async () => {
+  it('rejects a description longer than 5,000 characters without sending a request', async () => {
     renderModal();
 
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Task' } });
     fireEvent.change(screen.getByLabelText('Description'), {
-      target: { value: 'x'.repeat(10_001) },
+      target: { value: 'x'.repeat(5_001) },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
-    expect(screen.getByText('Description must be at most 10000 characters.')).toBeInTheDocument();
+    expect(screen.getByText('Description must be at most 5000 characters.')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('posts the trimmed title with a null assignee, then reports the card and closes', async () => {
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ data: createdCard }), {
+      new Response(JSON.stringify(createdCard), {
         status: 201,
         headers: { 'Content-Type': 'application/json' },
       }),
@@ -110,7 +113,7 @@ describe('CardFormModal', () => {
 
   it('sends the selected member id as assignee_id', async () => {
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ data: createdCard }), {
+      new Response(JSON.stringify(createdCard), {
         status: 201,
         headers: { 'Content-Type': 'application/json' },
       }),
@@ -128,7 +131,7 @@ describe('CardFormModal', () => {
 
   it('keeps the modal open with the entered values and re-enables submit after a failure', async () => {
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ error: 'Column not found.' }), {
+      new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Column not found.', details: null } }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       }),

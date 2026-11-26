@@ -1,9 +1,9 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { Header } from '@/components/Header';
+import { Header } from '@/components/layout/Header';
 import { renderWithAuth, DEFAULT_TEST_USER } from '../helpers/renderWithAuth';
 
-vi.mock('@/components/NotificationBell', () => ({
+vi.mock('@/components/layout/NotificationBell', () => ({
   NotificationBell: () => <div data-testid="notification-bell" />,
 }));
 

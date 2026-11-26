@@ -36,6 +36,7 @@
     "eslint-config-next": "16.4.6",
     "fast-check": "^4.10",
     "jsdom": "^31",
+    "msw": "^2.15.0",
     "postcss": "^8.5",
     "tailwindcss": "4.3.5",
     "typescript": "~5.9.3",
