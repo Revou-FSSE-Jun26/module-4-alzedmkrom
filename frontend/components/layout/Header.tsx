@@ -35,16 +35,25 @@ export function Header() {
           <Link href="/" className={NAV_LINK_CLASSES}>
             Dashboard
           </Link>
-          <Link href="/my-tasks" className={NAV_LINK_CLASSES}>
-            My tasks
-          </Link>
-          <Link href="/profile" className={NAV_LINK_CLASSES}>
-            Profile
-          </Link>
-          <span className="px-2 py-2 text-base text-gray-600">{user?.name}</span>
-          <BaseButton variant="secondary" onClick={() => logout()}>
-            Log out
-          </BaseButton>
+          {user !== null ? (
+            <>
+              <Link href="/my-tasks" className={NAV_LINK_CLASSES}>
+                My tasks
+              </Link>
+              <Link href="/profile" className={NAV_LINK_CLASSES}>
+                Profile
+              </Link>
+              <span className="px-2 py-2 text-base text-gray-600">{user.name}</span>
+              <BaseButton variant="secondary" onClick={() => logout()}>
+                Log out
+              </BaseButton>
+            </>
+          ) : (
+            // Anonymous visitors see Log in, not the signed-in links (FE-AUTH-03, FE-ROLE-02).
+            <Link href="/login" className={NAV_LINK_CLASSES}>
+              Log in
+            </Link>
+          )}
         </nav>
 
         <div className="ml-auto flex items-center gap-2 sm:ml-0">

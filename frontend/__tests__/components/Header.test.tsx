@@ -22,6 +22,16 @@ describe('Header', () => {
     expect(nav).toHaveTextContent(DEFAULT_TEST_USER.name);
   });
 
+  // FE-AUTH-03: after logout, or for an anonymous visitor, the header offers Log in only.
+  it('shows Log in and no signed-in controls for an anonymous visitor', () => {
+    renderWithAuth(<Header />, { token: null, user: null });
+
+    expect(screen.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/login');
+    expect(screen.queryByRole('button', { name: 'Log out' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'My tasks' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Profile' })).toBeNull();
+  });
+
   it('calls logout once when the Log out button is clicked', () => {
     const { spies } = renderWithAuth(<Header />);
 
