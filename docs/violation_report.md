@@ -357,18 +357,18 @@ Backend checks:
 | 12 | BE-SVC-02 | `GET /api/boards/<id>` loads columns and cards with eager loading (no per-column or per-card queries) | Pass | Pass | Before: `boards/service.py:74-75` (three queries via `queries.load_board`). After: `boards/service.py:76` `selectinload(Card.assignee)`, and `permissions.load_board` for the board tree. |
 | 13 | BE-SEC-01 | No hard-coded secrets, values come from the environment, and `.env.example` exists | Pass | Pass | Before: `config.py` reads `JWT_SECRET_KEY` from the environment. After: `backend/app/config.py` reads all settings from `os.environ`; `backend/.env.example` exists with placeholders only. |
 
-Frontend checks (not scored yet, frontend steering not loaded):
+Frontend checks (baseline `e3fbedd` scored with `git grep`; after-results pending the frontend regeneration):
 
 | # | Guideline | Check | Before | After | Evidence |
 |---|---|---|---|---|---|
-| 20 | FE-STR-03 | Dashboard and Board Detail are Server Components | Not scored yet | Not scored yet | Frontend steering pending |
-| 21 | FE-API-01, FE-API-03 | One `apiClient` makes all backend calls and throws an `ApiError` with `statusCode` and `message` | Not scored yet | Not scored yet | Frontend steering pending |
-| 22 | FE-DND-03 | Drag-and-drop uses native events, updates optimistically, and restores the exact original position on error | Not scored yet | Not scored yet | Frontend steering pending |
-| 23 | FE-NTF-01 | Notifications poll every 30 seconds and clear the interval on unmount | Not scored yet | Not scored yet | Frontend steering pending |
-| 24 | FE-UI-01 | My Tasks and Profile use `BaseButton`, with no raw `<button>` elsewhere | Not scored yet | Not scored yet | Frontend steering pending |
-| 25 | FE-AUTH-01 | The token is not stored in `localStorage` or `sessionStorage` | Not scored yet | Not scored yet | Frontend steering pending |
-| 26 | FE-SEC-01 | No `dangerouslySetInnerHTML` anywhere | Not scored yet | Not scored yet | Frontend steering pending |
-| 27 | FE-UX-03 | No text below 14px (except avatar initials and the notification count), body text and helper messages at 16px, and `BaseBadge` (medium weight) at 14px | Not scored yet | Not scored yet | Frontend steering pending |
+| 20 | FE-STR-03 | Dashboard and Board Detail are Server Components | Pass | Not scored yet | Before: no `"use client"` in any page under `frontend/app` (only `error.tsx` and `global-error.tsx`), and no `useEffect` in `frontend/app`. |
+| 21 | FE-API-01, FE-API-03 | One `apiClient` makes all backend calls and throws an `ApiError` with `statusCode`, `message`, `code`, and `details` | Fail | Not scored yet | Before: `fetch(` appears only in `frontend/lib/apiClient.ts:59` (single client, passes). `frontend/lib/errors.ts:1-9` `ApiError` has only `statusCode` and `message`, so `code` and `details` are missing. |
+| 22 | FE-DND-03 | Drag-and-drop uses native events, updates optimistically, and restores the exact original position on error | Pass | Not scored yet | Before: `frontend/hooks/useDragAndDrop.ts` saves `snapshot` (line 102), and the `catch` dispatches `state/restored` with that snapshot (about line 131). |
+| 23 | FE-NTF-01 | Notifications poll every 30 seconds and clear the interval on unmount | Pass (row scope) | Not scored yet | Before: `POLL_INTERVAL_MS = 30_000` (`useNotifications.ts:10`), `setInterval` (line 97), `clearInterval` on cleanup (line 104). Gap: no `document.hidden` or `visibilitychange` handling, so polling does not pause in background tabs. |
+| 24 | FE-UI-01 | My Tasks and Profile use `BaseButton`, with no raw `<button>` elsewhere | Pass | Not scored yet | Before: the only `<button` in `frontend/` is `components/shared/BaseButton.tsx:47` (allowed) and the ESLint message text in `eslint.config.mjs:26`. |
+| 25 | FE-AUTH-01 | The token is kept in an httpOnly cookie set by a Server Action, and never in `localStorage`, `sessionStorage`, or a non-httpOnly cookie | Fail | Not scored yet | Before: no `localStorage` or `sessionStorage` use (passes). `frontend/lib/session.ts:21-30` writes `document.cookie` from the browser, so the cookie is not httpOnly. |
+| 26 | FE-SEC-01 | No `dangerouslySetInnerHTML` anywhere | Pass | Not scored yet | Before: zero hits in `frontend/`. |
+| 27 | FE-UX-03 | No text below 14px (except avatar initials and the notification count), body text and helper messages at 16px, and `BaseBadge` (medium weight) at 14px | Fail | Not scored yet | Before: helper text at `text-sm` (`app/my-tasks/page.tsx:16`, `app/page.tsx:20`, `components/shared/FormField.tsx:37`). `text-xs` on `BaseBadge.tsx:12` and on the notification timestamp at `NotificationBell.tsx:103`, which is 12px, not 14px. Helper text needs `text-base`. |
 
 ### 3.3 Results
 
@@ -380,7 +380,7 @@ Database and backend checks are scored. Frontend is not.
 | Pass rate | 68% of scored | 100% of scored | +32 points |
 | Backend checks passed (of 13) | 9 | 13 | +4 |
 | Database checks passed (of 6) | 4 | 6 | +2 |
-| Frontend checks passed (of 8) | Not scored | Not scored | n/a |
+| Frontend checks passed (of 8) | 5 of 8 (baseline `e3fbedd`) | Not scored yet | n/a |
 | Guideline violations found in review | 7 (V-01 to V-07) | 0 open in database or backend | -7 |
 | Tests generated / tests passing | 1 smoke test file (backend), 1 smoke test file (database) | 195 tests passing: 140 API and 55 database, on PostgreSQL 18 | n/a (not a like-for-like count) |
 
