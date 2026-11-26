@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RevoTask Design Reference (phase 3 of 3)</title>
+<!--
+READ ME (for Kiro and for people)
+- This file lives at .kiro/design-visual/design.html. It is a visual reference, not the app. Build the real UI as Next.js components (see .kiro/steering/frontend.md).
+- Every [data-screen] is a page or state; [data-route] is its Next.js route. Every [data-component] is a React component named in frontend.md (FE-STR-02, FE-UI-*).
+- Classes are Tailwind. Reusable styles live in the text/tailwindcss block below: .btn* => BaseButton, .badge* => BaseBadge, .panel => card surfaces, .field => inputs.
+- Colors come from CSS variables so light and dark share the same classes. Toggle dark with the class "dark" on <html>.
+- Type scale (readability comes first): body text, labels, input text, buttons, card titles, list text, comments, and helper messages are 16px (text-base). Helper messages are field hints and errors, notes under forms, read-only notices, page and board descriptions, and the messages in empty, error, and not-found states. Badges, due and completed dates, comment counts, and timestamps are 14px (text-sm), which is the minimum for real text. A date looks the same whether it is plain text or a badge. Badges use medium weight and card titles use semibold, so titles stand out. 12px (text-xs) is used only for numbers or initials inside small circles. Page titles use text-2xl or text-3xl, section titles text-lg or text-xl.
+- Prism = one brand idea: a thin spectrum gradient (blue, indigo, cyan, violet). It is used on the logo mark, the header hairline, board card tops, the card being dragged, and BaseButton (primary fill, secondary outline; destructive stays red with a prism-style sheen so its meaning is clear). Everything else stays calm.
+- [data-for="..."] marks elements that only some viewers see (anonymous, guest, member, admin). In the app this comes from my_role (FE-ROLE-01), never from a hard-coded role.
+- All three phases are done: tokens, shared components, header, Dashboard, Board, Card modal, Login, Register, My Tasks, Profile, notification dropdown, toasts, the Admin panels (MembersPanel, AnalyticsPanel, opened from the board header by admins only), and the States screen (loading skeletons, empty states, and error states).
+-->
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: { extend: {
+    fontFamily: { sans: ['"Hanken Grotesk"', 'system-ui', 'sans-serif'] },
+    colors: {
+      bg: 'var(--bg)', surface: 'var(--surface)', line: 'var(--line)', ink: 'var(--ink)', mute: 'var(--mute)',
+      brand: { 50: '#eff6ff', 100: '#dbeafe', 300: '#93c5fd', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+    }
+  } }
+}
+</script>
+<style>
+:root{--bg:#f4f7fc;--surface:#ffffff;--line:#dfe6f2;--ink:#0e1a33;--mute:#5b6b8a;
+  --prism:linear-gradient(90deg,#2563eb,#6366f1 35%,#06b6d4 70%,#8b5cf6);
+  --lift:0 1px 2px rgba(15,40,100,.06),0 6px 18px -8px rgba(15,40,100,.14)}
+.dark{--bg:#080d1c;--surface:#1a2448;--line:#3a4878;--ink:#e7ecf8;--mute:#aab6d4;
+  --lift:inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.4),0 8px 22px -10px rgba(0,0,0,.6)}
+body{background:var(--bg);color:var(--ink);font-family:"Hanken Grotesk",system-ui,sans-serif}
+.prism{background:var(--prism)}
+.prism-ring{position:relative}
+.prism-ring::before{content:"";position:absolute;inset:-1.5px;border-radius:inherit;background:var(--prism);z-index:-1}
+/* Prism background: light washes, a faint dot grid, a soft beam band, and two blurred ribbons of spectrum light. Fixed behind everything; tune with the --w*, --b*, --dot, --rb-op variables. */
+:root{--w1:rgba(37,99,235,.14);--w2:rgba(139,92,246,.13);--w3:rgba(6,182,212,.12);--w4:rgba(99,102,241,.10);
+  --dot:rgba(30,64,140,.10);--b1:rgba(99,102,241,.05);--b2:rgba(6,182,212,.07);--b3:rgba(139,92,246,.05);--rb-op:.18}
+.dark{--w1:rgba(37,99,235,.30);--w2:rgba(139,92,246,.24);--w3:rgba(6,182,212,.15);--w4:rgba(99,102,241,.20);
+  --dot:rgba(160,185,255,.10);--b1:rgba(99,102,241,.08);--b2:rgba(6,182,212,.09);--b3:rgba(139,92,246,.08);--rb-op:.32}
+.prism-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;
+  background:radial-gradient(60rem 36rem at 8% -8%,var(--w1),transparent 60%),radial-gradient(52rem 34rem at 100% 0%,var(--w2),transparent 62%),
+  radial-gradient(46rem 30rem at 88% 108%,var(--w3),transparent 62%),radial-gradient(38rem 26rem at 0% 100%,var(--w4),transparent 62%)}
+.prism-bg::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--dot) 1px,transparent 1.3px);background-size:24px 24px;
+  -webkit-mask-image:linear-gradient(to bottom,#000,transparent 72%);mask-image:linear-gradient(to bottom,#000,transparent 72%)}
+.prism-bg::after{content:"";position:absolute;inset:-20%;background:linear-gradient(115deg,transparent 42%,var(--b1) 47%,var(--b2) 50%,var(--b3) 53%,transparent 58%)}
+.pb-ribbon{position:absolute;height:110px;border-radius:9999px;filter:blur(64px);opacity:var(--rb-op);background:linear-gradient(90deg,#2563eb,#6366f1,#06b6d4,#8b5cf6)}
+.pb-r1{width:70vw;right:-22vw;top:20vh;transform:rotate(-24deg)}
+.pb-r2{width:60vw;left:-24vw;bottom:12vh;transform:rotate(-24deg)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style type="text/tailwindcss">
+@layer components{
+  .btn{@apply inline-flex items-center justify-center gap-2 rounded-[10px] px-4 py-2.5 text-base font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed disabled:opacity-50}
+  .btn-primary{@apply btn text-white;background-image:linear-gradient(110deg,#2563eb 0%,#4f46e5 45%,#7c3aed 100%);background-size:170% 100%;background-position:0 0;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 6px 16px -6px rgba(79,70,229,.55);transition-property:background-position,box-shadow,transform}
+  .btn-primary:hover:not(:disabled){background-position:100% 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 8px 20px -6px rgba(99,102,241,.7)}
+  .btn-secondary{@apply btn text-ink;border:1.5px solid transparent;background:linear-gradient(var(--surface),var(--surface)) padding-box,var(--prism) border-box;transition-property:box-shadow,transform}
+  .btn-secondary:hover:not(:disabled){box-shadow:0 8px 20px -10px rgba(99,102,241,.65)}
+  .btn-destructive{@apply btn text-white;background-image:linear-gradient(110deg,#dc2626 0%,#e11d48 55%,#be185d 100%);background-size:170% 100%;background-position:0 0;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 6px 16px -6px rgba(220,38,38,.5);transition-property:background-position,box-shadow,transform}
+  .btn-destructive:hover:not(:disabled){background-position:100% 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 8px 20px -6px rgba(225,29,72,.7)}
+  .btn-sm{@apply px-4 py-2.5 text-base}
+  .badge{@apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium leading-none}
+  .badge-gray{@apply badge bg-slate-200 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300}
+  .badge-blue{@apply badge bg-brand-100 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300}
+  .badge-green{@apply badge bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300}
+  .badge-yellow{@apply badge bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300}
+  .badge-red{@apply badge bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300}
+  .panel{@apply rounded-2xl border border-line bg-surface;box-shadow:var(--lift)}
+  .field{@apply w-full rounded-[10px] border border-line bg-bg px-3 py-2.5 text-base text-ink placeholder:text-mute focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30}
+  .avatar{@apply grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-500/25 dark:text-brand-300}
+  .kcard{@apply block w-full cursor-grab rounded-xl border border-line bg-surface p-3 text-left transition hover:border-brand-500;box-shadow:var(--lift)}
+}
+</style>
+</head>
+<body data-role="member" class="min-h-screen antialiased">
+<!-- Decorative background (components/layout/PrismBackground.tsx). Purely visual: aria-hidden, no pointer events. -->
+<div class="prism-bg" data-component="PrismBackground" aria-hidden="true">
+  <span class="pb-ribbon pb-r1"></span>
+  <span class="pb-ribbon pb-r2"></span>
+</div>
+
+<!-- Design bar: NOT part of the app. It only switches screens, viewer role, and theme. -->
+<div class="sticky top-0 z-50 flex flex-wrap items-center gap-2 bg-slate-900 px-4 py-2 text-sm text-slate-200" data-design-only>
+  <span class="font-semibold">Design bar</span>
+  <button class="rounded px-2 py-1 hover:bg-slate-700" data-go="board">Board</button>
+  <button class="rounded px-2 py-1 hover:bg-slate-700" data-go="dashboard">Dashboard</button>
+  <button class="rounded px-2 py-1 hover:bg-slate-700" data-go="components">Components</button>
+  <button class="rounded px-2 py-1 hover:bg-slate-700" data-go="login">Login</button>
+  <button class="rounded px-2 py-1 hover:bg-slate-700" data-go="register">Register</button>
+  <button class="rounded px-2 py-1 hover:bg-slate-700" data-go="my-tasks">My Tasks</button>
+  <button class="rounded px-2 py-1 hover:bg-slate-700" data-go="profile">Profile</button>
+  <button class="rounded px-2 py-1 hover:bg-slate-700" id="toast-demo">Toasts</button>
+  <button class="rounded px-2 py-1 hover:bg-slate-700" data-go="states">States</button>
+  <button class="rounded px-2 py-1 hover:bg-slate-700" id="open-modal">Card modal</button>
+  <label class="ml-2 flex items-center gap-1">Viewer
+    <select id="role" class="rounded bg-slate-800 px-2 py-1">
+      <option value="anonymous">Anonymous</option><option value="guest">Guest</option>
+      <option value="member" selected>Member</option><option value="admin">Admin</option>
+    </select></label>
+  <button class="rounded px-2 py-1 hover:bg-slate-700" id="theme">Light / dark</button>
+  <span class="ml-auto text-slate-400">Phase 3 of 3</span>
+</div>
+
+<!-- Header: components/layout/Header.tsx -->
+<header data-component="Header" class="border-b border-line bg-surface shadow-[0_12px_28px_-18px_rgba(15,40,100,.35)] dark:shadow-[0_12px_28px_-14px_rgba(0,0,0,.7)]">
+  <div class="prism h-[3px]"></div>
+  <div class="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:gap-6">
+    <a href="#" class="flex items-center gap-2.5 text-lg font-bold tracking-tight">
+      <span class="prism grid h-8 w-8 place-items-center rounded-[10px] text-base font-bold text-white">R</span>RevoTask
+    </a>
+    <nav aria-label="Main" class="flex items-center gap-1 text-base font-medium text-mute">
+      <a href="#" data-go="dashboard" class="rounded-lg px-3 py-1.5 text-ink hover:bg-bg">Boards</a>
+      <a href="#" data-go="my-tasks" data-for="guest member admin" class="rounded-lg px-3 py-1.5 hover:bg-bg">My Tasks</a>
+      <a href="#" data-go="profile" data-for="guest member admin" class="rounded-lg px-3 py-1.5 hover:bg-bg">Profile</a>
+    </nav>
+    <div class="ml-auto flex items-center gap-2">
+      <div data-for="anonymous" class="flex gap-2">
+        <a href="#" data-go="login" class="btn-secondary btn-sm">Log in</a><a href="#" data-go="register" class="btn-primary btn-sm">Create account</a>
+      </div>
+      <!-- NotificationBell.tsx: badge shows unread_count from the API (FE-NTF-02) -->
+      <div data-for="guest member admin" class="relative"><button id="bell" data-component="NotificationBell" aria-haspopup="true" aria-expanded="false" aria-label="Notifications, 3 unread"
+        class="relative grid h-9 w-9 place-items-center rounded-full border border-line hover:border-brand-500">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></svg>
+        <span class="absolute -right-1 -top-1 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-brand-600 px-1 text-xs font-bold text-white">3</span>
+      </button>
+      <!-- NotificationDropdown (inside NotificationBell.tsx, FE-NTF-02): plain-text messages, newest first, paginated with "Load older" (GET /api/notifications). Clicking one marks it read. -->
+      <div id="notif" data-component="NotificationDropdown" class="panel absolute right-0 top-12 z-30 hidden w-[22rem] max-w-[90vw] overflow-hidden">
+        <div class="prism h-1"></div>
+        <div class="flex items-center justify-between px-4 py-3"><h2 class="text-base font-bold">Notifications</h2><span class="badge-blue">3 unread</span></div>
+        <ul class="max-h-80 divide-y divide-line overflow-y-auto border-t border-line text-base">
+          <li class="flex gap-3 bg-brand-50/70 px-4 py-3 dark:bg-brand-500/10"><span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-600"></span><div><p>Budi Santoso commented on "Fix payment timeout".</p><p class="mt-0.5 text-sm text-mute">2 minutes ago</p></div></li>
+          <li class="flex gap-3 bg-brand-50/70 px-4 py-3 dark:bg-brand-500/10"><span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-600"></span><div><p>You were assigned "Update shipping rates table".</p><p class="mt-0.5 text-sm text-mute">1 hour ago</p></div></li>
+          <li class="flex gap-3 bg-brand-50/70 px-4 py-3 dark:bg-brand-500/10"><span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-600"></span><div><p>Your card "Draft FAQ" was deleted by an administrator.</p><p class="mt-0.5 text-sm text-mute">Yesterday</p></div></li>
+          <li class="flex gap-3 px-4 py-3"><span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-transparent"></span><div><p class="text-mute">Citra Lestari was added to Sprint 12.</p><p class="mt-0.5 text-sm text-mute">2 days ago</p></div></li>
+        </ul>
+        <div class="border-t border-line p-2"><button class="btn-secondary btn-sm w-full">Load older</button></div>
+      </div></div>
+      <span data-for="guest member admin" class="avatar h-10 w-10 text-base" title="Ana Kusuma">AK</span>
+    </div>
+  </div>
+</header>
+
+<main class="mx-auto max-w-7xl px-4 py-8">
+
+<!-- ===== Screen: Dashboard (app/page.tsx, Server Component) ===== -->
+<section data-screen="dashboard" data-route="/" class="hidden">
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-bold tracking-tight">Boards</h1>
+      <p class="mt-1 text-base text-mute">Open a board to see its columns and cards.</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <!-- Scope toggle: ?scope=mine|public (FE-PAGE-02) -->
+      <div data-for="guest member admin" class="flex rounded-[10px] border border-line bg-surface p-1 text-base font-semibold" role="group" aria-label="Board scope">
+        <button class="rounded-lg bg-brand-600 px-3 py-1 text-white" aria-pressed="true">My boards</button>
+        <button class="rounded-lg px-3 py-1 text-mute" aria-pressed="false">Public boards</button>
+      </div>
+      <button data-for="guest member admin" class="btn-primary">Create board</button>
+    </div>
+  </div>
+
+  <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <!-- BoardCard (components/board/BoardCard.tsx) -->
+    <a href="#" data-component="BoardCard" data-go="board" class="panel block overflow-hidden transition hover:-translate-y-0.5">
+      <div class="prism h-1.5"></div>
+      <div class="p-5">
+        <div class="flex items-start justify-between gap-2">
+          <h2 class="text-lg font-semibold">Sprint 12</h2><span class="badge-blue">Admin</span>
+        </div>
+        <p class="mt-1 text-base text-mute">Checkout redesign and payment fixes.</p>
+        <div class="mt-5 flex items-center justify-between text-base text-mute">
+          <span>14 cards, 5 members</span><span class="badge-green">Public</span>
+        </div>
+      </div>
+    </a>
+    <a href="#" data-component="BoardCard" class="panel block overflow-hidden transition hover:-translate-y-0.5">
+      <div class="prism h-1.5"></div>
+      <div class="p-5">
+        <div class="flex items-start justify-between gap-2">
+          <h2 class="text-lg font-semibold">Marketing launch</h2><span class="badge-gray">Member</span>
+        </div>
+        <p class="mt-1 text-base text-mute">Campaign assets and launch checklist.</p>
+        <div class="mt-5 flex items-center justify-between text-base text-mute">
+          <span>9 cards, 3 members</span><span class="badge-yellow">Private</span>
+        </div>
+      </div>
+    </a>
+    <a href="#" data-component="BoardCard" class="panel block overflow-hidden transition hover:-translate-y-0.5">
+      <div class="prism h-1.5"></div>
+      <div class="p-5">
+        <div class="flex items-start justify-between gap-2">
+          <h2 class="text-lg font-semibold">Customer support</h2><span class="badge-gray">Guest</span>
+        </div>
+        <p class="mt-1 text-base text-mute">Open tickets and escalations.</p>
+        <div class="mt-5 flex items-center justify-between text-base text-mute">
+          <span>21 cards, 8 members</span><span class="badge-green">Public</span>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Pagination: BaseButton only (FE-UI-01); values come from the pagination envelope -->
+  <nav aria-label="Pagination" class="mt-8 flex items-center justify-between text-base text-mute">
+    <span>Page 1 of 3</span>
+    <div class="flex gap-2"><button class="btn-secondary btn-sm" disabled>Previous</button><a href="?page=2" class="btn-secondary btn-sm">Next</a></div>
+  </nav>
+</section>
+
+<!-- ===== Screen: Board Detail (app/boards/[id]/page.tsx + components/board/KanbanBoard.tsx) ===== -->
+<section data-screen="board" data-route="/boards/[id]">
+  <div class="mb-5 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex flex-wrap items-center gap-3">
+      <h1 class="text-3xl font-bold tracking-tight">Sprint 12</h1>
+      <span class="badge-green">Public</span>
+      <span data-for="admin" class="badge-blue">Admin</span>
+      <span data-for="member" class="badge-gray">Member</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="flex -space-x-2" aria-label="5 members"><span class="avatar ring-2 ring-bg">AK</span><span class="avatar ring-2 ring-bg">BS</span><span class="avatar ring-2 ring-bg">CL</span><span class="avatar ring-2 ring-bg text-xs">+2</span></div>
+      <button data-for="admin" data-panel="members-modal" class="btn-secondary btn-sm">Members</button>
+      <button data-for="admin" data-panel="analytics-modal" class="btn-secondary btn-sm">Analytics</button>
+    </div>
+  </div>
+
+  <!-- Read-only notices (FE-ROLE-02) -->
+  <p data-for="anonymous" class="mb-5 rounded-xl border border-brand-300 bg-brand-50 px-4 py-3 text-base text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-300">You are viewing this board without an account. <a href="#" class="font-semibold underline">Log in</a> to contribute.</p>
+  <p data-for="guest" class="mb-5 rounded-xl border border-brand-300 bg-brand-50 px-4 py-3 text-base text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-300">You have read-only access. Ask a board admin to add you as a member.</p>
+
+  <!-- Columns scroll horizontally on small screens (FE-UX-02) -->
+  <div class="-mx-4 flex gap-4 overflow-x-auto px-4 pb-4">
+
+    <div data-component="Column" class="w-72 shrink-0">
+      <div class="mb-3 flex items-center justify-between px-1"><h2 class="text-lg font-semibold">To Do <span class="ml-1 text-base font-medium text-mute">3</span></h2></div>
+      <div class="space-y-3">
+        <button class="kcard" data-component="Card" data-open="modal" draggable="true">
+          <p class="text-base font-semibold">Update shipping rates table</p>
+          <div class="mt-3 flex items-center justify-between text-sm text-mute"><span class="badge-red">Due Nov 18</span><span class="flex items-center gap-2">2 comments <span class="avatar">BS</span></span></div>
+        </button>
+        <button class="kcard" data-component="Card" data-open="modal" draggable="true">
+          <p class="text-base font-semibold">Write release notes</p>
+          <div class="mt-3 flex items-center justify-between text-sm text-mute"><span>No due date</span><span class="avatar">AK</span></div>
+        </button>
+        <button class="kcard" data-component="Card" data-open="modal" draggable="true">
+          <p class="text-base font-semibold">Audit empty states</p>
+          <div class="mt-3 flex items-center justify-between text-sm text-mute"><span>Due Nov 25</span><span class="avatar">CL</span></div>
+        </button>
+        <button data-for="member admin" class="btn-secondary btn-sm w-full border-dashed">Add card</button>
+      </div>
+    </div>
+
+    <div data-component="Column" class="w-72 shrink-0">
+      <div class="mb-3 flex items-center justify-between px-1"><h2 class="text-lg font-semibold">In Progress <span class="ml-1 text-base font-medium text-mute">2</span></h2></div>
+      <div class="space-y-3">
+        <!-- Card being dragged (FE-DND-03): prism outline, slightly tilted -->
+        <div class="prism-ring rounded-xl"><button class="kcard rotate-1 !cursor-grabbing" data-component="Card" aria-grabbed="true">
+          <p class="text-base font-semibold">Fix payment timeout</p>
+          <div class="mt-3 flex items-center justify-between text-sm text-mute"><span class="badge-yellow">Due Nov 16</span><span class="avatar">AK</span></div>
+        </button></div>
+        <button class="kcard" data-component="Card" data-open="modal" draggable="true">
+          <p class="text-base font-semibold">Redesign order summary</p>
+          <div class="mt-3 flex items-center justify-between text-sm text-mute"><span>Due Nov 20</span><span class="flex items-center gap-2">5 comments <span class="avatar">BS</span></span></div>
+        </button>
+        <button data-for="member admin" class="btn-secondary btn-sm w-full border-dashed">Add card</button>
+      </div>
+    </div>
+
+    <!-- Drop target highlight (FE-DND-04) -->
+    <div data-component="Column" class="w-72 shrink-0">
+      <div class="mb-3 flex items-center justify-between px-1"><h2 class="text-lg font-semibold">Review <span class="ml-1 text-base font-medium text-mute">1</span></h2></div>
+      <div class="space-y-3 rounded-2xl border-2 border-dashed border-brand-500 bg-brand-50/60 p-2 dark:bg-brand-500/10">
+        <button class="kcard" data-component="Card" data-open="modal" draggable="true">
+          <p class="text-base font-semibold">Add address autocomplete</p>
+          <div class="mt-3 flex items-center justify-between text-sm text-mute"><span>Due Nov 22</span><span class="avatar">CL</span></div>
+        </button>
+        <p class="py-2 text-center text-sm font-semibold text-brand-700 dark:text-brand-300">Drop here</p>
+      </div>
+    </div>
+
+    <div data-component="Column" class="w-72 shrink-0">
+      <div class="mb-3 flex items-center justify-between px-1"><h2 class="text-lg font-semibold">Done <span class="badge-green ml-1">Done</span></h2></div>
+      <div class="space-y-3">
+        <button class="kcard opacity-80" data-component="Card" data-open="modal" draggable="true">
+          <p class="text-base font-semibold line-through decoration-mute/60">Migrate to Next.js 16</p>
+          <div class="mt-3 flex items-center justify-between text-sm text-mute"><span class="badge-green">Completed Nov 12</span><span class="avatar">AK</span></div>
+        </button>
+        <button class="kcard opacity-80" data-component="Card" data-open="modal" draggable="true">
+          <p class="text-base font-semibold line-through decoration-mute/60">Set up CI pipeline</p>
+          <div class="mt-3 flex items-center justify-between text-sm text-mute"><span class="badge-green">Completed Nov 10</span><span class="avatar">BS</span></div>
+        </button>
+      </div>
+    </div>
+
+    <div data-for="member admin" class="w-72 shrink-0"><button class="btn-secondary w-full border-dashed">Add column</button></div>
+  </div>
+</section>
+
+<!-- ===== Screen: Login (app/login/page.tsx): controlled inputs; a 401 here is a wrong-credentials message, not "session expired" (FE-AUTH-04) ===== -->
+<section data-screen="login" data-route="/login" class="hidden">
+  <div class="mx-auto max-w-md"><div class="panel overflow-hidden"><div class="prism h-1.5"></div><div class="p-8">
+    <h1 class="text-2xl font-bold tracking-tight">Welcome back</h1>
+    <p class="mt-1 text-base text-mute">Log in to manage your boards and tasks.</p>
+    <p role="alert" class="mt-5 rounded-xl border border-red-300 bg-red-50 px-3 py-2.5 text-base text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">Invalid email or password.</p>
+    <div class="mt-5 space-y-4">
+      <label class="block text-base font-semibold">Email<input type="email" autocomplete="email" class="field mt-1" value="ana@example.com"></label>
+      <label class="block text-base font-semibold">Password<input type="password" autocomplete="current-password" class="field mt-1" value="secret-pass"></label>
+    </div>
+    <button class="btn-primary mt-6 w-full">Log in</button>
+    <p class="mt-5 text-center text-base text-mute">New here? <a href="#" data-go="register" class="font-semibold text-brand-600 dark:text-brand-300">Create an account</a></p>
+  </div></div></div>
+</section>
+
+<!-- ===== Screen: Register (app/register/page.tsx): a 409 EMAIL_TAKEN shows on the email field; success redirects to /login (FE-PAGE-01) ===== -->
+<section data-screen="register" data-route="/register" class="hidden">
+  <div class="mx-auto max-w-md"><div class="panel overflow-hidden"><div class="prism h-1.5"></div><div class="p-8">
+    <h1 class="text-2xl font-bold tracking-tight">Create your account</h1>
+    <p class="mt-1 text-base text-mute">Start with read access, then ask a board admin to add you as a member.</p>
+    <div class="mt-6 space-y-4">
+      <label class="block text-base font-semibold">Name<input type="text" autocomplete="name" class="field mt-1" value="Ana Kusuma"></label>
+      <label class="block text-base font-semibold">Email<input type="email" autocomplete="email" aria-invalid="true" class="field mt-1 !border-red-500" value="ana@example.com">
+        <span class="mt-1.5 block text-base text-red-600 dark:text-red-400">Email already in use.</span></label>
+      <label class="block text-base font-semibold">Password<input type="password" autocomplete="new-password" class="field mt-1" value="secret-pass">
+        <span class="mt-1.5 block text-base text-mute">At least 8 characters.</span></label>
+    </div>
+    <button class="btn-primary mt-6 w-full">Create account</button>
+    <p class="mt-5 text-center text-base text-mute">Already registered? <a href="#" data-go="login" class="font-semibold text-brand-600 dark:text-brand-300">Log in</a></p>
+  </div></div></div>
+</section>
+
+<!-- ===== Screen: My Tasks (app/my-tasks/page.tsx, Server Component): GET /api/cards?assignee=me, grouped by board_name ===== -->
+<section data-screen="my-tasks" data-route="/my-tasks" class="hidden">
+  <h1 class="text-3xl font-bold tracking-tight">My tasks</h1>
+  <p class="mt-1 text-base text-mute">Cards assigned to you, grouped by board.</p>
+  <div class="mt-8 space-y-8">
+    <div data-component="TaskGroup">
+      <div class="mb-3 flex items-center justify-between"><h2 class="flex items-center gap-2 text-lg font-semibold">Sprint 12 <span class="badge-gray">3</span></h2><a href="#" data-go="board" class="btn-secondary btn-sm">Open board</a></div>
+      <ul class="panel divide-y divide-line text-base">
+        <li class="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5"><span class="font-semibold">Fix payment timeout</span><span class="flex gap-2"><span class="badge-blue">In Progress</span><span class="badge-yellow">Due Nov 16</span></span></li>
+        <li class="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5"><span class="font-semibold">Write release notes</span><span class="flex gap-2"><span class="badge-gray">To Do</span><span class="text-sm text-mute">No due date</span></span></li>
+        <li class="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 opacity-80"><span class="font-semibold line-through decoration-mute/60">Migrate to Next.js 16</span><span class="flex gap-2"><span class="badge-green">Done</span><span class="badge-green">Completed Nov 12</span></span></li>
+      </ul>
+    </div>
+    <div data-component="TaskGroup">
+      <div class="mb-3 flex items-center justify-between"><h2 class="flex items-center gap-2 text-lg font-semibold">Marketing launch <span class="badge-gray">1</span></h2><a href="#" data-go="board" class="btn-secondary btn-sm">Open board</a></div>
+      <ul class="panel divide-y divide-line text-base">
+        <li class="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5"><span class="font-semibold">Prepare launch email</span><span class="flex gap-2"><span class="badge-blue">Review</span><span class="badge-gray">Due Nov 21</span></span></li>
+      </ul>
+    </div>
+  </div>
+  <nav aria-label="Pagination" class="mt-8 flex items-center justify-between text-base text-mute"><span>Page 1 of 1</span><div class="flex gap-2"><button class="btn-secondary btn-sm" disabled>Previous</button><button class="btn-secondary btn-sm" disabled>Next</button></div></nav>
+</section>
+
+<!-- ===== Screen: Profile (app/profile/page.tsx): only name and email are sent, only the fields that changed (FE-PAGE-06) ===== -->
+<section data-screen="profile" data-route="/profile" class="hidden">
+  <div class="mx-auto max-w-xl">
+    <h1 class="text-3xl font-bold tracking-tight">Profile</h1>
+    <p class="mt-1 text-base text-mute">Update how your name and email appear to your team.</p>
+    <div class="panel mt-6 overflow-hidden"><div class="prism h-1.5"></div><div class="p-6">
+      <div class="mb-6 flex items-center gap-4"><span class="prism-ring rounded-full"><span class="avatar h-14 w-14 text-lg ring-2 ring-surface">AK</span></span>
+        <div><p class="font-semibold">Ana Kusuma</p><p class="text-base text-mute">Member of 2 boards</p></div></div>
+      <div class="space-y-4">
+        <label class="block text-base font-semibold">Name<input type="text" class="field mt-1" value="Ana Kusuma"></label>
+        <label class="block text-base font-semibold">Email<input type="email" class="field mt-1" value="ana@example.com"></label>
+      </div>
+      <p class="mt-4 text-base text-mute">Your password and permissions cannot be changed here.</p>
+      <div class="mt-6 flex justify-end gap-2"><button class="btn-secondary">Cancel</button><button class="btn-primary">Save</button></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ===== Screen: States (reference for loading.tsx, error.tsx, not-found.tsx, empty states, and inline errors; FE-UX-01, FE-API-05) ===== -->
+<section data-screen="states" data-route="(states)" class="hidden space-y-10">
+  <div><h1 class="text-3xl font-bold tracking-tight">Loading, empty, and error states</h1>
+    <p class="mt-1 text-base text-mute">Every data page needs all three, so a screen is never blank.</p></div>
+
+  <div><h2 class="mb-3 text-xl font-bold">Loading (loading.tsx skeleton)</h2>
+    <div data-component="BoardSkeleton" class="panel p-5" aria-busy="true" aria-label="Loading board">
+      <div class="mb-5 h-8 w-56 animate-pulse rounded-lg bg-line"></div>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="space-y-3"><div class="h-5 w-24 animate-pulse rounded bg-line"></div><div class="h-20 animate-pulse rounded-xl bg-line"></div><div class="h-20 animate-pulse rounded-xl bg-line"></div></div>
+        <div class="space-y-3"><div class="h-5 w-28 animate-pulse rounded bg-line"></div><div class="h-20 animate-pulse rounded-xl bg-line"></div></div>
+        <div class="space-y-3"><div class="h-5 w-20 animate-pulse rounded bg-line"></div><div class="h-20 animate-pulse rounded-xl bg-line"></div><div class="h-20 animate-pulse rounded-xl bg-line"></div><div class="h-20 animate-pulse rounded-xl bg-line"></div></div>
+      </div></div></div>
+
+  <div><h2 class="mb-3 text-xl font-bold">Empty states</h2>
+    <div class="grid gap-5 md:grid-cols-2">
+      <div data-component="EmptyState" class="panel flex flex-col items-center p-8 text-center"><span class="prism-ring mb-4 rounded-full"><span class="grid h-12 w-12 place-items-center rounded-full bg-surface text-xl text-brand-600">+</span></span>
+      <h3 class="text-xl font-semibold">No boards yet</h3><p class="mt-1 text-base text-mute">Create your first board to start organizing work.</p><button class="btn-primary mt-5">Create board</button></div>
+      <div data-component="EmptyState" class="panel flex flex-col items-center p-8 text-center"><span class="prism-ring mb-4 rounded-full"><span class="grid h-12 w-12 place-items-center rounded-full bg-surface text-xl text-brand-600">+</span></span>
+      <h3 class="text-xl font-semibold">No columns yet</h3><p class="mt-1 text-base text-mute">Add the first column to start planning. Read-only viewers see only this text.</p><button data-for="member admin" class="btn-primary mt-5">Add column</button></div>
+      <div data-component="EmptyState" class="panel flex flex-col items-center p-8 text-center"><span class="prism-ring mb-4 rounded-full"><span class="grid h-12 w-12 place-items-center rounded-full bg-surface text-xl text-brand-600">+</span></span>
+      <h3 class="text-xl font-semibold">No tasks assigned to you</h3><p class="mt-1 text-base text-mute">Cards assigned to you will show up here, grouped by board.</p></div>
+      <div data-component="EmptyState" class="panel flex flex-col items-center p-8 text-center"><span class="prism-ring mb-4 rounded-full"><span class="grid h-12 w-12 place-items-center rounded-full bg-surface text-xl text-brand-600">+</span></span>
+      <h3 class="text-xl font-semibold">You are all caught up</h3><p class="mt-1 text-base text-mute">New comments, assignments, and board changes will appear here.</p></div>
+    </div></div>
+
+  <div><h2 class="mb-3 text-xl font-bold">Error pages (error.tsx and not-found.tsx)</h2>
+    <div class="grid gap-5 md:grid-cols-2">
+      <div data-component="ErrorPage" class="panel p-8 text-center"><h3 class="text-xl font-bold">Something went wrong</h3>
+        <p class="mt-2 text-base text-mute">We could not load this page. Please try again.</p><button class="btn-primary mt-5">Try again</button></div>
+      <div data-component="NotFoundPage" class="panel p-8 text-center"><h3 class="text-xl font-bold">Board not found</h3>
+        <p class="mt-2 text-base text-mute">It may have been deleted, or you may not have access to it.</p><a href="#" data-go="dashboard" class="btn-secondary mt-5">Back to boards</a></div>
+    </div></div>
+
+  <div><h2 class="mb-3 text-xl font-bold">Inline error messages (from useErrorHandler)</h2>
+    <div class="space-y-3">
+      <p role="alert" class="rounded-xl border px-4 py-3 text-base border-red-300 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">You don't have permission to do that.</p>
+      <p role="alert" class="rounded-xl border px-4 py-3 text-base border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300">This column has cards created by other members. Move or delete them first, or ask an admin.</p>
+      <p role="alert" class="rounded-xl border px-4 py-3 text-base border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300">A board always keeps at least one admin. Make someone else an admin first.</p>
+      <p role="alert" class="rounded-xl border px-4 py-3 text-base border-red-300 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">Can't reach the server. Check your connection.</p>
+      <p role="status" class="rounded-xl border px-4 py-3 text-base border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-300">Session expired. Please log in again.</p>
+    </div></div>
+</section>
+
+<!-- ===== Screen: Shared components (components/shared/) ===== -->
+<section data-screen="components" data-route="(reference only)" class="hidden space-y-10">
+  <div>
+    <h1 class="text-3xl font-bold tracking-tight">Shared components</h1>
+    <p class="mt-1 text-base text-mute">These three live in <code>components/shared/</code> and are reused everywhere.</p>
+  </div>
+
+  <div class="panel p-6" data-component="BaseButton">
+    <h2 class="mb-4 text-lg font-semibold">BaseButton</h2>
+    <div class="flex flex-wrap items-center gap-3">
+      <button class="btn-primary">Save changes</button>
+      <button class="btn-secondary">Cancel</button>
+      <button class="btn-destructive">Delete card</button>
+      <button class="btn-primary" aria-busy="true" disabled><svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9" /></svg>Saving</button>
+      <button class="btn-secondary" disabled>Disabled</button>
+      <a href="#" class="btn-secondary">Open board</a>
+    </div>
+    <p class="mt-3 text-base text-mute">Variants: primary, secondary, destructive. States: loading and disabled. With <code>href</code> it renders a link with the same look.</p>
+  </div>
+
+  <div class="panel p-6" data-component="BaseBadge">
+    <h2 class="mb-4 text-lg font-semibold">BaseBadge</h2>
+    <div class="flex flex-wrap gap-2"><span class="badge-gray">Member</span><span class="badge-blue">Admin</span><span class="badge-green">Public</span><span class="badge-yellow">Private</span><span class="badge-red">Overdue</span></div>
+    <p class="mt-3 text-base text-mute">Always contains text. Color never carries meaning alone.</p>
+  </div>
+
+  <div class="panel p-6" data-component="BaseModal">
+    <h2 class="mb-4 text-lg font-semibold">BaseModal</h2>
+    <div role="dialog" aria-modal="true" aria-labelledby="m-title" class="max-w-md rounded-2xl border border-line bg-surface p-6" style="box-shadow:var(--lift)">
+      <div class="flex items-start justify-between"><h3 id="m-title" class="text-lg font-semibold">Delete this card?</h3><button aria-label="Close" class="rounded-lg px-2 text-mute hover:bg-bg">x</button></div>
+      <p class="mt-2 text-base text-mute">The card will disappear from the board. Comments on it will be hidden too.</p>
+      <div class="mt-6 flex justify-end gap-2"><button class="btn-secondary">Cancel</button><button class="btn-destructive">Delete card</button></div>
+    </div>
+    <p class="mt-3 text-base text-mute">Escape and backdrop click close it. Focus is trapped inside. Used for dialog forms and every confirmation.</p>
+  </div>
+</section>
+
+</main>
+
+<!-- ===== MembersPanel (components/board/MembersPanel.tsx inside BaseModal): admins only. GET /api/boards/<id>/members; add, change role, remove. Admins see emails (BE-VAL-04). ===== -->
+<div id="members-modal" data-component="MembersPanel" class="fixed inset-0 z-40 hidden items-start justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="members-title">
+  <div class="panel mt-10 w-full max-w-2xl overflow-hidden"><div class="prism h-1.5"></div><div class="p-6">
+    <div class="flex items-start justify-between gap-4"><div><h2 id="members-title" class="text-xl font-bold">Board members</h2>
+      <p class="mt-1 text-base text-mute">Only admins can add, promote, demote, or remove members.</p></div>
+      <button data-close-panel aria-label="Close" class="rounded-lg px-2 py-1 text-mute hover:bg-bg">x</button></div>
+    <div class="mt-5 grid gap-3 sm:grid-cols-[1fr_9rem_auto]">
+      <label class="block text-base font-semibold">Email<input type="email" class="field mt-1" placeholder="name@example.com"></label>
+      <label class="block text-base font-semibold">Role<select class="field mt-1"><option>Member</option><option>Admin</option></select></label>
+      <div class="flex items-end"><button class="btn-primary w-full sm:w-auto">Add member</button></div></div>
+    <p class="mt-2 text-base text-mute">The person must already have an account.</p>
+    <ul class="mt-6 divide-y divide-line rounded-xl border border-line">
+      <li class="flex flex-wrap items-center gap-3 px-4 py-3"><span class="avatar">AK</span>
+        <div class="min-w-0 flex-1"><p class="text-base font-semibold">Ana Kusuma (you)</p><p class="text-sm text-mute">ana@example.com</p></div><span class="badge-blue">Admin</span><div class="flex gap-2"><button class="btn-secondary btn-sm" disabled>Demote</button><button class="btn-destructive btn-sm" disabled>Remove</button></div></li>
+      <li class="flex flex-wrap items-center gap-3 px-4 py-3"><span class="avatar">BS</span>
+        <div class="min-w-0 flex-1"><p class="text-base font-semibold">Budi Santoso</p><p class="text-sm text-mute">budi@example.com</p></div><span class="badge-gray">Member</span><div class="flex gap-2"><button class="btn-secondary btn-sm">Make admin</button><button class="btn-destructive btn-sm">Remove</button></div></li>
+      <li class="flex flex-wrap items-center gap-3 px-4 py-3"><span class="avatar">CL</span>
+        <div class="min-w-0 flex-1"><p class="text-base font-semibold">Citra Lestari</p><p class="text-sm text-mute">citra@example.com</p></div><span class="badge-gray">Member</span><div class="flex gap-2"><button class="btn-secondary btn-sm">Make admin</button><button class="btn-destructive btn-sm">Remove</button></div></li>
+    </ul>
+    <p class="mt-4 text-base text-mute">A board always keeps at least one admin, so the last admin cannot be demoted or removed.</p>
+  </div></div>
+</div>
+
+<!-- ===== AnalyticsPanel (components/board/AnalyticsPanel.tsx inside BaseModal): admins only. GET /api/boards/<id>/analytics (BE-ANL-01) ===== -->
+<div id="analytics-modal" data-component="AnalyticsPanel" class="fixed inset-0 z-40 hidden items-start justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="analytics-title">
+  <div class="panel mt-10 w-full max-w-3xl overflow-hidden"><div class="prism h-1.5"></div><div class="p-6">
+    <div class="flex items-start justify-between gap-4"><div><h2 id="analytics-title" class="text-xl font-bold">Analytics</h2>
+      <p class="mt-1 text-base text-mute">Week starting Monday, Nov 16 (UTC)</p></div>
+      <button data-close-panel aria-label="Close" class="rounded-lg px-2 py-1 text-mute hover:bg-bg">x</button></div>
+    <div class="mt-5 grid gap-3 sm:grid-cols-3">
+      <div class="rounded-xl border border-line bg-bg p-4"><p class="text-3xl font-bold">14</p><p class="text-sm text-mute">Total cards</p></div>
+      <div class="rounded-xl border border-line bg-bg p-4"><p class="text-3xl font-bold">4</p><p class="text-sm text-mute">Completed this week</p></div>
+      <div class="rounded-xl border border-line bg-bg p-4"><p class="text-3xl font-bold">5</p><p class="text-sm text-mute">Members</p></div>
+    </div>
+    <h3 class="mt-7 text-lg font-semibold">Cards per column</h3>
+    <ul class="mt-3 space-y-3">
+      <li class="flex items-center gap-3"><span class="w-28 shrink-0 text-base">To Do</span><span class="h-3 flex-1 rounded-full bg-bg"><span class="prism block h-3 rounded-full" style="width:100%"></span></span><span class="w-8 text-right text-base font-semibold">5</span></li>
+      <li class="flex items-center gap-3"><span class="w-28 shrink-0 text-base">In Progress</span><span class="h-3 flex-1 rounded-full bg-bg"><span class="prism block h-3 rounded-full" style="width:80%"></span></span><span class="w-8 text-right text-base font-semibold">4</span></li>
+      <li class="flex items-center gap-3"><span class="w-28 shrink-0 text-base">Review</span><span class="h-3 flex-1 rounded-full bg-bg"><span class="prism block h-3 rounded-full" style="width:40%"></span></span><span class="w-8 text-right text-base font-semibold">2</span></li>
+      <li class="flex items-center gap-3"><span class="w-28 shrink-0 text-base">Done</span><span class="h-3 flex-1 rounded-full bg-bg"><span class="prism block h-3 rounded-full" style="width:60%"></span></span><span class="w-8 text-right text-base font-semibold">3</span></li>
+    </ul>
+    <h3 class="mt-7 text-lg font-semibold">Member activity</h3>
+    <div class="mt-3 overflow-x-auto rounded-xl border border-line"><table class="w-full min-w-[34rem] text-left text-base">
+      <thead class="bg-bg text-sm text-mute"><tr><th class="px-4 py-2 font-semibold">Member</th><th class="px-3 py-2 text-right font-semibold">Created</th><th class="px-3 py-2 text-right font-semibold">Comments</th><th class="px-3 py-2 text-right font-semibold">Assigned</th><th class="px-3 py-2 text-right font-semibold">Done this week</th></tr></thead>
+      <tbody class="divide-y divide-line">
+        <tr><td class="px-4 py-2.5 font-semibold">Ana Kusuma</td><td class="px-3 text-right">5</td><td class="px-3 text-right">7</td><td class="px-3 text-right">4</td><td class="px-3 text-right">2</td></tr>
+        <tr><td class="px-4 py-2.5 font-semibold">Budi Santoso</td><td class="px-3 text-right">4</td><td class="px-3 text-right">9</td><td class="px-3 text-right">5</td><td class="px-3 text-right">1</td></tr>
+        <tr><td class="px-4 py-2.5 font-semibold">Citra Lestari</td><td class="px-3 text-right">3</td><td class="px-3 text-right">2</td><td class="px-3 text-right">3</td><td class="px-3 text-right">1</td></tr>
+        <tr><td class="px-4 py-2.5 font-semibold">Dewi Anggraini</td><td class="px-3 text-right">1</td><td class="px-3 text-right">4</td><td class="px-3 text-right">1</td><td class="px-3 text-right">0</td></tr>
+        <tr><td class="px-4 py-2.5 font-semibold">Eko Prasetyo</td><td class="px-3 text-right">1</td><td class="px-3 text-right">0</td><td class="px-3 text-right">1</td><td class="px-3 text-right">0</td></tr>
+      </tbody></table></div>
+  </div></div>
+</div>
+
+<!-- ===== CardDetailModal (components/board/CardDetailModal.tsx, composes CommentList inside BaseModal) ===== -->
+<div id="card-modal" data-component="CardDetailModal" class="fixed inset-0 z-40 hidden items-start justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="card-title">
+  <div class="panel mt-10 w-full max-w-2xl overflow-hidden">
+    <div class="prism h-1.5"></div>
+    <div class="p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 id="card-title" class="text-xl font-bold">Fix payment timeout</h2>
+          <p class="mt-1 text-base text-mute">In column <b class="text-ink">In Progress</b>, on Sprint 12</p>
+        </div>
+        <button id="close-modal" aria-label="Close" class="rounded-lg px-2 py-1 text-mute hover:bg-bg">x</button>
+      </div>
+
+      <div class="mt-5 grid gap-4 sm:grid-cols-2">
+        <label class="block text-base font-semibold">Assignee
+          <select class="field mt-1" data-for-disable="anonymous guest"><option>Ana Kusuma</option><option>Budi Santoso</option></select></label>
+        <label class="block text-base font-semibold">Due date
+          <input type="date" class="field mt-1" value="2026-11-16"></label>
+        <label class="block text-base font-semibold sm:col-span-2">Description
+          <textarea class="field mt-1" rows="3">Checkout requests fail after 30 seconds on slow mobile networks.</textarea></label>
+        <!-- Keyboard and touch fallback for drag and drop (FE-DND-05) -->
+        <label data-for="member admin" class="block text-base font-semibold">Move to column
+          <select class="field mt-1"><option>To Do</option><option selected>In Progress</option><option>Review</option><option>Done</option></select></label>
+      </div>
+
+      <div data-for="member admin" class="mt-5 flex items-center justify-between">
+        <button class="btn-destructive">Delete card</button>
+        <div class="flex gap-2"><button class="btn-secondary">Cancel</button><button class="btn-primary">Save changes</button></div>
+      </div>
+
+      <!-- CommentList.tsx: oldest first; edit and delete only on your own comments (FE-PAGE-04) -->
+      <div data-component="CommentList" class="mt-8 border-t border-line pt-5">
+        <h3 class="text-base font-semibold">Comments <span class="text-mute">2</span></h3>
+        <ul class="mt-4 space-y-4">
+          <li class="flex gap-3"><span class="avatar">BS</span>
+            <div class="min-w-0 flex-1"><p class="text-base"><b>Budi Santoso</b> <span class="text-mute">Nov 12, 09:14</span></p>
+            <p class="mt-1 text-base">Reproduced on a throttled connection. Looks like the gateway call has no retry.</p></div></li>
+          <li class="flex gap-3"><span class="avatar">AK</span>
+            <div class="min-w-0 flex-1"><p class="text-base"><b>Ana Kusuma</b> <span class="text-mute">Nov 13, 16:40</span></p>
+            <p class="mt-1 text-base">Adding a retry with backoff now.</p>
+            <p data-for="member admin" class="mt-1 flex gap-3 text-base font-semibold text-brand-600"><button>Edit</button><button class="text-red-600">Delete</button></p></div></li>
+        </ul>
+        <div data-for="member admin" class="mt-5 flex gap-3"><span class="avatar">AK</span>
+          <div class="flex-1"><label class="sr-only" for="c">Add a comment</label>
+            <textarea id="c" class="field" rows="2" placeholder="Write a comment"></textarea>
+            <div class="mt-2 flex justify-end"><button class="btn-primary">Post comment</button></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts (lib/toast.ts wraps react-hot-toast; mounted once in the root layout, FE-API-04). Messages come from useErrorHandler (FE-API-05). -->
+<div id="toasts" data-component="Toaster" class="fixed right-4 top-16 z-[60] flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-3" aria-live="polite"></div>
+
+<script>
+const $ = (s, r = document) => [...r.querySelectorAll(s)];
+const modal = document.getElementById('card-modal');
+const notif = document.getElementById('notif'), bell = document.getElementById('bell');
+function go(name){ toggleModal(false); toggleNotif(false); closePanels(); $('[data-screen]').forEach(s => s.classList.toggle('hidden', s.dataset.screen !== name)); }
+function setRole(role){
+  document.body.dataset.role = role;
+  $('[data-for]').forEach(el => el.classList.toggle('hidden', !el.dataset.for.split(' ').includes(role)));
+  $('[data-for-disable]').forEach(el => el.disabled = el.dataset.forDisable.split(' ').includes(role));
+}
+function toggleModal(open){ modal.classList.toggle('hidden', !open); modal.classList.toggle('flex', open); }
+$('[data-go]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); go(b.dataset.go); }));
+$('[data-open="modal"]').forEach(c => c.addEventListener('click', () => toggleModal(true)));
+document.getElementById('open-modal').onclick = () => toggleModal(true);
+document.getElementById('close-modal').onclick = () => toggleModal(false);
+modal.addEventListener('click', e => { if (e.target === modal) toggleModal(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleModal(false); });
+document.getElementById('role').onchange = e => setRole(e.target.value);
+document.getElementById('theme').onclick = () => document.documentElement.classList.toggle('dark');
+function toggleNotif(open){ notif.classList.toggle('hidden', !open); bell.setAttribute('aria-expanded', open); }
+bell.addEventListener('click', e => { e.stopPropagation(); toggleNotif(notif.classList.contains('hidden')); });
+document.addEventListener('click', e => { if (!notif.contains(e.target)) toggleNotif(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleNotif(false); });
+const toastIcon = {
+  success: '<span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-emerald-500 text-sm font-bold text-white">&#10003;</span>',
+  error: '<span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-red-500 text-sm font-bold text-white">!</span>',
+  loading: '<svg class="h-6 w-6 shrink-0 animate-spin text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg>'
+};
+function showToast(kind, text){
+  const t = document.createElement('div');
+  t.setAttribute('data-component', 'Toast');
+  t.className = 'panel flex items-center gap-3 px-4 py-3 text-base font-medium';
+  t.innerHTML = toastIcon[kind] + '<span>' + text + '</span>';
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), kind === 'loading' ? 3000 : 4500);
+}
+document.getElementById('toast-demo').onclick = () => {
+  showToast('success', 'Profile saved.'); showToast('error', 'That item no longer exists.'); showToast('loading', 'Saving changes');
+};
+const panels = $('#members-modal, #analytics-modal');
+function togglePanel(el, open){ el.classList.toggle('hidden', !open); el.classList.toggle('flex', open); }
+function closePanels(){ panels.forEach(p => togglePanel(p, false)); }
+$('[data-panel]').forEach(b => b.addEventListener('click', () => togglePanel(document.getElementById(b.dataset.panel), true)));
+$('[data-close-panel]').forEach(b => b.addEventListener('click', closePanels));
+panels.forEach(p => p.addEventListener('click', e => { if (e.target === p) closePanels(); }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanels(); });
+setRole('member');
+</script>
+</body>
+</html>
