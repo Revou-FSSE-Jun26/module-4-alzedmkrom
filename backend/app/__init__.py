@@ -24,8 +24,24 @@ def skip_empty_revision(context, revision, directives):
             directives[:] = []
 
 
+from app.openapi import register_docs
+
+
 def health():
     return jsonify({"status": "ok"}), 200
+
+
+health.__openapi__ = {  # type: ignore[attr-defined]
+    "summary": "Health check",
+    "tags": ["health"],
+    "request": None,
+    "success": None,
+    "many": False,
+    "query": None,
+    "public": True,
+    "status": 200,
+    "conflict": False,
+}
 
 
 def register_blueprints(app: Flask) -> None:
@@ -100,6 +116,9 @@ def create_app(verify_db: bool = True) -> Flask:
     from app.seed import seed_command
 
     app.cli.add_command(seed_command)
+
+    if settings.swagger_enabled:
+        register_docs(app)
 
     if verify_db:
         with app.app_context():

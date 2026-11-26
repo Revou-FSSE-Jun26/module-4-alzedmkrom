@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 from app.auth_utils import auth_required, current_user
 from app.blueprints.notifications import service
 from app.blueprints.notifications.schema import NotificationSchema
+from app.openapi import document
 from app.schemas import PaginationQuerySchema, parse
 
 bp = Blueprint("notifications", __name__)
@@ -10,6 +11,13 @@ bp = Blueprint("notifications", __name__)
 
 @bp.get("/api/notifications")
 @auth_required
+@document(
+    summary="List notifications",
+    tags=["notifications"],
+    success=NotificationSchema,
+    many=True,
+    query=PaginationQuerySchema,
+)
 def list_notifications():
     args = parse(PaginationQuerySchema, request.args.to_dict())
     items, total, pages, unread = service.list_notifications(
@@ -29,6 +37,11 @@ def list_notifications():
 
 @bp.patch("/api/notifications/<uuid:notification_id>/read")
 @auth_required
+@document(
+    summary="Mark a notification as read",
+    tags=["notifications"],
+    success=NotificationSchema,
+)
 def mark_read(notification_id):
     notification = service.mark_read(current_user(), notification_id)
     return jsonify(NotificationSchema().dump(notification)), 200
