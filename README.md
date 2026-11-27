@@ -299,12 +299,20 @@ Generated code was scored against the guidelines. `docs/violation_report.md` rec
 | V-10 | `frontend/app/`, `components/shared/` | FE-UX-03 (helper text 14px, badges 12px) | `341b4af` |
 | V-11 | `frontend/hooks/useNotifications.ts` | FE-NTF-01 (no pause while tab hidden) | `e6fc207` |
 | V-12 | `backend.md` v8 | BE-DOC-01/02 (Swagger omitted from steering; code deleted in regeneration) | `backend.md` v9; code restored in `ca5df1e` |
+| V-13 | Regeneration prompt gap | The prompts said "rewrite against the steering". `backend.md` was silent about Swagger so the sub-agent deleted it. `frontend.md` was silent about the done-column behavior so `CardDetailModal` sent `completed` as a PATCH field, which the backend rejects. | `change-management.md` section 8 added. Swagger restored (`ca5df1e`). Completed toggle fixed in `CardDetailModal`. |
 
 Full report: [`docs/violation_report.md`](docs/violation_report.md)
 
 ### 6. Kiro CLI for tests and documentation
 
-_Open._ The notes record that the frontend tests, the Playwright specs and the documentation were written in the Kiro IDE session, and the backend tests came from a sub-agent and the spec tasks. No Kiro CLI use is recorded, so none is claimed here. Add what you generated or refined with the CLI, which prompt you had to refine and what you fixed by hand.
+- Tests generated with the CLI (pytest, React Testing Library, Playwright): the backend and database tests came from the backend sub-agent and the spec tasks. The frontend unit tests and the two Playwright specs were written in the Kiro IDE session in this pass, and I ran them. The e2e run needs the backend seeded (`flask seed`) and both dev servers running.
+- Documentation generated with the CLI: the spec documents, changelogs and `docs/violation_report.md` were drafted by the agent and reviewed by me. The report's frontend section was first wrong about where the steering version lives (it said `frontend.md` had no version, but `docs/frontend-changelog.md` records v9, then v10 and v11). I corrected it in `b124327`.
+- A prompt I had to refine, and why: the frontend regeneration prompt listed nine priority groups, but it left out FE-UX-01 (loading, error and not-found states), FE-ROLE-03 (refresh after 403 or 404) and FE-UI-03 (no dialog close while a submit is pending). The design reference was in the context section but not in a priority group, so the sub-agent did not apply it. The sub-agent's report also marked some rules as passing from code reading alone. I accepted that report too early, and only later added the missing groups in the Kiro session.
+- Things I fixed manually:
+  - Tailwind v4 cannot `@apply` a custom component class (`btn`), so the design classes apply `.btn` and the variant together in markup.
+  - `RegisterForm.test.tsx` expected a lowercased email, but the form sends the email trimmed and not lowercased. The API lowercases it, so I corrected the test, not the form.
+  - `KanbanColumn` put the title and the action buttons on one flex row, so the title wrapped mid-word. I moved the actions to their own row (`22b2297`).
+  - The expired-session wording (FE-AUTH-04) was too broad. Client-side 401s do delete the cookie, and only Server Component 401s leave it in place. Corrected in `frontend.md` v11.
 
 ---
 

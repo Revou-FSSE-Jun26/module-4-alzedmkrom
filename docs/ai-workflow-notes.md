@@ -149,4 +149,7 @@ Add one line per event so you do not rely on memory later. Do not copy this tabl
 | 2026-11-26 | Steering | Added section 11 (BE-DOC-01 to BE-DOC-04) to `backend.md` v9: OpenAPI document, Swagger UI, `document` decorator, `SWAGGER_ENABLED` production default, and tests. `config.py` gets `swagger_enabled`. Task 14 reset to open. | commit `36ffeb8`, `docs/backend-changelog.md` |
 | 2026-11-26 | Code | Restored `app/openapi.py` (`build_openapi`, `register_docs`, `document`). Decorated every route. Wired `register_docs` into `create_app`. Wrote 9 Swagger tests. Tasks 14, 14.1, 14.2, 14.3 all marked done. | commit `ca5df1e` |
 | 2026-11-26 | Verification | Backend: `pytest tests/api tests/database` 204 passed (195 + 9 Swagger), `pytest --cov=app` 95.7%. Frontend: lint, 99 unit tests, `npm run build` all pass. Playwright: 4 tests pass on localhost. | `backend/`, `frontend/` run output, 2026-11-26 |
+| 2026-11-27 | Bug fix | "Completed" checkbox in CardDetailModal sent `completed` as a PATCH body field. `CardUpdateSchema` rejects it with 422 "Unknown field." The fix moves the card to the done column on tick, and to a non-done column on untick, via `dnd.moveCard`. | `frontend/components/board/CardDetailModal.tsx` |
+| 2026-11-27 | Steering | Added section 8 "Regeneration Rule" to `change-management.md`: keep existing features, record every removal with a rule ID, never delete silently. | `.kiro/steering/change-management.md` |
+| 2026-11-27 | Docs | Recorded regeneration prompt gap as V-13 in violation report. | `docs/violation_report.md` |
 | | | | |

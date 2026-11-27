@@ -102,3 +102,15 @@ Use this format:
 - Keep version numbers consistent across related specification documents.
 - Ask for clarification when a requested revision conflicts with an existing requirement.
 - Treat approved changes as the new source of truth while retaining historical records.
+
+## 8. Regeneration Rule
+
+When code is regenerated from a steering file (for example, to fix violations or apply a new rule), the following applies:
+
+- **Keep existing features.** Only replace or remove code that directly conflicts with a steering rule. Everything else stays.
+- **Never silently delete a feature** because it was not mentioned in the steering file. Absence from the steering is not a reason to remove.
+- **Record every removal** in the relevant changelog. For each file or feature removed, state the steering rule ID that required it (for example "BE-STR-01 requires eight blueprint domains; the separate `health` blueprint was replaced by an app-level route").
+- **Record every replacement** where behavior changed, even if the change was intentional (for example "card search moved from `GET /api/cards?search=` to a browser-side filter; the backend no longer serves it").
+- If a regeneration accidentally removes a feature that no rule required, that is a violation. Restore the feature and add a steering rule to protect it, so the same removal cannot happen again.
+
+**Why:** regeneration prompts are written against the steering file. A file that is silent about a feature will not preserve it. Explicit rules are the only protection.

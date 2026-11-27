@@ -48,7 +48,8 @@ Backend: regenerate the backend on main so it follows .kiro/steering/backend.md 
 | V-09 | Frontend | FE-AUTH-01 (also FE-AUTH-02) | High | Fixed | `043caf1` |
 | V-10 | Frontend | FE-UX-03 | Low | Fixed | `341b4af` |
 | V-11 | Frontend | FE-NTF-01 | Low | Fixed | `e6fc207` |
-| V-12 | Backend | BE-DOC-01, BE-DOC-02 (steering gap; `backend.md` lacked the OpenAPI section) | Medium | Steering added; code open (task 14) | `backend.md` v9; `config.py` `swagger_enabled` field |
+| V-12 | Backend | BE-DOC-01, BE-DOC-02 (steering gap; `backend.md` lacked the OpenAPI section) | Medium | Fixed | `backend.md` v9; code restored in `ca5df1e` |
+| V-13 | Backend + Frontend | Regeneration prompt gap: the prompts said "rewrite against the steering". `backend.md` was silent about Swagger and `GET /api/cards?search=`, so the sub-agent deleted both. Frontend `frontend.md` was silent about the done-column toggle behavior, so the form sent `completed` as a PATCH body field, which the backend rejects. | Medium | Partially fixed | `change-management.md` section 8 added. Swagger restored (`ca5df1e`). Card search remains browser-side by deliberate deferral. Completed-card toggle fixed in the frontend (`CardDetailModal` now moves the card to/from the done column instead of sending `completed` to the API). |
 
 Severity guide: High = security hole, data loss, or wrong permissions. Medium = wrong behavior or broken contract. Low = maintainability, naming, or structure.
 
