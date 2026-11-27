@@ -131,7 +131,40 @@ export function CardDetailModal({
     }
     const body: Partial<Record<CardField, unknown>> = {};
     for (const field of changed) {
+      // `completed` is not an API field. Toggling it triggers a column move below (BE-ORD-03).
+      if (field === "completed") {
+        continue;
+      }
       body[field] = values[field];
+    }
+
+    // Handle the completed toggle: move to the done column (or away from it).
+    const completedChanged = changed.includes("completed");
+    if (completedChanged) {
+      const doneColumn = columns.find((col) => col.is_done);
+      if (completed) {
+        // Tick: move to the done column if one exists.
+        if (doneColumn === undefined) {
+          setFormError("No done column exists on this board. Mark a column as done first.");
+          return;
+        }
+        if (columnId !== doneColumn.id) {
+          void dnd.moveCard(card.id, doneColumn.id, "end");
+        }
+      } else {
+        // Untick: move away from the done column if currently in it.
+        if (columnId === doneColumn?.id) {
+          const nonDone = sortByOrder(columns).find((col) => !col.is_done);
+          if (nonDone !== undefined) {
+            void dnd.moveCard(card.id, nonDone.id, "end");
+          }
+        }
+      }
+      // If no other fields changed, close the modal now — the move request will handle the state.
+      if (Object.keys(body).length === 0) {
+        onClose();
+        return;
+      }
     }
     setSaving(true);
     try {
