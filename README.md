@@ -6,8 +6,8 @@ The project has two parts: a Flask REST API (`backend/`, deployed to Railway) an
 
 | | URL |
 |---|---|
-| Frontend (Vercel) | _Not deployed yet. Add the URL here after the first deployment._ |
-| API (Railway) | _Not deployed yet. Add the URL here after the first deployment._ |
+| Frontend (Vercel) | https://module-4-alzedmkrom.vercel.app/ |
+| API (Vercel) | https://module-4-alzedmkrom.vercel.app/ |
 | API docs (Swagger UI) | `<API URL>/api/docs` when `SWAGGER_ENABLED=true` (off by default in production) |
 
 ---
