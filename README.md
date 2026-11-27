@@ -1,15 +1,215 @@
 # RevoTask
 
-A Trello-like task manager. Board members create boards, organize work into columns, move cards by drag-and-drop, comment, and track the cards assigned to them. Board administrators manage member access, oversee all cards, and monitor team activity through analytics and notifications.
+RevoTask is a Trello-like task management application built through a disciplined AI-driven development workflow. Users create boards, organize work into columns, move cards by drag-and-drop, collaborate through comments, and track the cards assigned to them. Board administrators also manage member access, oversee all cards, and monitor team activity through analytics and notifications.
 
-- `frontend/` — Next.js 16 client app (TypeScript, Tailwind CSS)
-- `backend/` — Flask REST API (Python, SQLAlchemy, Marshmallow, PostgreSQL 18)
+The project has two parts: a Flask REST API (`backend/`, deployed to Railway) and a Next.js frontend (`frontend/`, deployed to Vercel).
+
+| | URL |
+|---|---|
+| Frontend (Vercel) | _Not deployed yet. Add the URL here after the first deployment._ |
+| API (Railway) | _Not deployed yet. Add the URL here after the first deployment._ |
+| API docs (Swagger UI) | `<API URL>/api/docs` when `SWAGGER_ENABLED=true` (off by default in production) |
+
+---
+
+## Features implemented
+
+**Authentication and access**
+- Register and log in with a JWT. Registration signs the new user in automatically.
+- The token is kept in an httpOnly cookie set by a Server Action. Protected routes (`/my-tasks`, `/profile`) redirect anonymous visitors to `/login`, and an expired token redirects to `/login?next=...` with one "Session expired" toast.
+- Per-board roles (Admin, Member, Guest, Anonymous). Public boards can be read without logging in.
+
+**Boards, columns and cards**
+- Create, rename and delete boards. Toggle a board between public and private.
+- Add, rename and delete columns, and mark one column per board as the done column.
+- Create, edit, assign and delete cards (cards are soft-deleted). Members delete only their own work.
+- Drag-and-drop between columns with the native HTML5 API, using the FLOAT order strategy (midpoint insertion, server-side rebalance). The UI updates at once and restores the exact position if the server rejects the move.
+- A "Move to column" select in the card modal as the keyboard and touch fallback.
+- Card search with a 300 ms debounce. It filters the cards already on the board in the browser, because the API has no search endpoint.
+
+**Collaboration**
+- Create, edit and delete comments on a card (owner only).
+- Notifications polled every 30 seconds, paused while the tab is hidden, with an unread badge on the bell that comes from the API's `unread_count`.
+- Board member management for Admins: add by email, change role, remove. The last Admin cannot be removed.
+
+**Personal pages**
+- My Tasks: cards assigned to you, grouped by board.
+- Profile: change your name and email.
+
+**Admin tools and API**
+- Analytics per board: cards per column, completed this week, and member activity.
+- Swagger UI and an OpenAPI 3 document generated from the Marshmallow schemas.
+
+**Testing**
+- Backend: 204 pytest tests on PostgreSQL 18 with 95.7% coverage.
+- Frontend: 99 Vitest and React Testing Library tests, with MSW for the API.
+- Playwright: 4 end-to-end tests (route states and registration). The full auth and Kanban E2E suite is **not written yet**; it is listed under optional tasks 16 to 24 in `.kiro/specs/frontend/tasks.md`.
+
+---
+
+## Technologies used
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, react-hot-toast |
+| Frontend tests | Vitest, React Testing Library, MSW, fast-check, Playwright |
+| Backend | Flask, SQLAlchemy, Flask-Migrate (Alembic), Flask-JWT-Extended, Flask-CORS, Marshmallow, apispec, python-dotenv, Gunicorn |
+| Database | PostgreSQL 18 |
+| Backend tests | pytest, Hypothesis |
+| Deployment | Railway (backend, see `backend/railway.json`), Vercel (frontend, see `frontend/vercel.json`) |
+| AI tools | Kiro (IDE, specs, steering and sub-agents). Kiro CLI: _not described yet, see the AI Workflow Summary_ |
+
+---
+
+## How to run the project locally
+
+**Prerequisites:** Git, Python 3.11+, PostgreSQL 18, Node.js 20.9+, npm 12+.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Revou-FSSE-Jun26/module-4-alzedmkrom.git
+cd module-4-alzedmkrom
+```
+
+### 2. Run the Flask API
+
+```bash
+cd backend
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
+
+pip install -r requirements.txt
+cp .env.example .env     # then edit .env
+flask db upgrade         # applies all migrations
+flask seed               # optional: demo users, boards, cards
+flask run                # http://localhost:5000
+```
+
+Edit `.env` using `.env.example` as the reference:
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string, for example `postgresql://USER:PASSWORD@127.0.0.1:5432/revotask_db` |
+| `JWT_SECRET_KEY` | Long random value used to sign JWTs |
+| `JWT_EXPIRES_MINUTES` | Token lifetime in minutes (default 60) |
+| `CORS_ORIGINS` | Comma-separated allowed origins (default `http://localhost:3000`) |
+| `SEED_PASSWORD` | Password for the demo users created by `flask seed` (default `revotask-dev`) |
+| `SWAGGER_ENABLED` | `true` or `false`. Defaults to `true` locally and `false` when `FLASK_ENV=production` |
+
+With Swagger on, the API docs are at `http://localhost:5000/api/docs`.
+
+### 3. Run the Next.js app
+
+In a second terminal:
+
+```bash
+cd frontend
+npm install              # .npmrc sets allow-remote=all, see the note below
+cp .env.example .env.local   # then edit .env.local
+npm run dev              # http://localhost:3000
+```
+
+Edit `.env.local` using `.env.example` as the reference:
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_API_BASE_URL` | API origin used in the browser, for example `http://localhost:5000`. No trailing slash and no `/api` |
+| `API_BASE_URL` | Same origin, used by Server Components. Falls back to `NEXT_PUBLIC_API_BASE_URL` when unset |
+| `PLAYWRIGHT_BASE_URL` | Frontend origin for the E2E tests, for example `http://localhost:3000` |
+
+> `frontend/.npmrc` sets `allow-remote=all`. npm 12 blocks the tarball URL of Tailwind's optional WASM package and otherwise fails with `EALLOWREMOTE`.
+
+After `flask seed`, you can log in as `alice@revotask.test`, `bob@revotask.test` or `carol@revotask.test` with the `SEED_PASSWORD` value.
+
+### Other frontend commands
+
+| Command | Description |
+|---|---|
+| `npm run build` | Run ESLint, then build for production |
+| `npm run typecheck` | TypeScript check without emitting files |
+| `npm run lint` | ESLint |
+
+---
+
+## How to run the test suite
+
+There are three layers.
+
+### 1. Backend: pytest
+
+From the Flask project root (`backend/`, with the virtual environment active). The tests need PostgreSQL 18. With `TEST_DATABASE_URL` unset, they start a throwaway cluster from the PostgreSQL 18 install (set `PG_BIN_DIR` if it is not in the default location).
+
+```bash
+cd backend
+pytest -v
+```
+
+### 2. Frontend: React Testing Library
+
+From the Next.js project root (`frontend/`):
+
+```bash
+cd frontend
+npm test
+```
+
+### 3. End to end: Playwright
+
+Run the full Playwright suite against the live Vercel URL (set `PLAYWRIGHT_BASE_URL` to it, in `.env.local` or in the shell):
+
+```bash
+cd frontend
+npx playwright install          # downloads the browsers (first run only)
+npx playwright test             # runs against PLAYWRIGHT_BASE_URL
+npx playwright show-report      # opens the HTML report
+```
+
+To run against a local app instead, start the API (seeded with `flask seed`) and `npm run dev`, then set `PLAYWRIGHT_BASE_URL=http://localhost:3000`.
+
+---
+
+## Screenshots
+
+Screenshots are stored in `docs/screenshots/`. None are captured yet. They need the deployed app, except where noted.
+
+| # | Screenshot | File | Status |
+|---|---|---|---|
+| 1 | Postman: all 8 blueprints reachable on the public API URL | `docs/screenshots/postman-blueprints.png` | Pending deployment |
+| 2 | Dashboard | `docs/screenshots/dashboard.png` | Pending |
+| 3 | Board Detail with columns and cards | `docs/screenshots/board-detail.png` | Pending |
+| 4 | Card Detail Modal with comments | `docs/screenshots/card-modal.png` | Pending |
+| 5 | My Tasks | `docs/screenshots/my-tasks.png` | Pending |
+| 6 | Profile | `docs/screenshots/profile.png` | Pending |
+| 7 | Register | `docs/screenshots/register.png` | Pending |
+| 8 | Login | `docs/screenshots/login.png` | Pending |
+| 9 | A card being dragged between columns | `docs/screenshots/drag-card.png` | Pending |
+| 10 | Notification bell with an unread count | `docs/screenshots/notification-bell.png` | Pending |
+| 11 | Playwright HTML report, all tests passed against the live URL | `docs/screenshots/playwright-report.png` | Pending deployment and the full E2E suite |
+
+---
+
+## Deploying
+
+**Backend on Railway.** `backend/railway.json` sets the start command (`gunicorn ... "app:create_app()"`), runs `flask db upgrade` before each deploy, and uses `/api/health` as the health check. Set `DATABASE_URL`, `JWT_SECRET_KEY`, `CORS_ORIGINS` and `FLASK_ENV=production` in the Railway service. `SWAGGER_ENABLED` is off in production unless you set it to `true`.
+
+**Frontend on Vercel.**
+1. Import the repository and set **Root Directory** to `frontend`. `frontend/vercel.json` sets the framework and the install and build commands.
+2. Set `NEXT_PUBLIC_API_BASE_URL` and `API_BASE_URL` to the API origin (the Railway URL, no trailing slash and no `/api`). `NEXT_PUBLIC_*` values are compiled in, so a change needs a redeploy.
+3. `PLAYWRIGHT_BASE_URL` is not needed in Vercel.
+4. After the first deployment, check the install step of the build log to confirm the `.npmrc` setting was read.
+
+**CORS.** The backend `CORS_ORIGINS` must list the exact Vercel origin as `https://<host>` (no trailing slash, no path) and `http://localhost:3000`. Server Component requests are server-to-server and need no entry. A Vercel preview deployment has its own origin and needs its own entry.
 
 ---
 
 ## AI Workflow Summary
 
-See [`docs/ai-workflow-notes.md`](docs/ai-workflow-notes.md) for the full notes and running log.
+The full notes and running log are in [`docs/ai-workflow-notes.md`](docs/ai-workflow-notes.md).
 
 ### 1. Project brief
 
@@ -102,90 +302,9 @@ Generated code was scored against the guidelines. `docs/violation_report.md` rec
 
 Full report: [`docs/violation_report.md`](docs/violation_report.md)
 
----
+### 6. Kiro CLI for tests and documentation
 
-## Backend setup
-
-**Prerequisites:** Python 3.11+, PostgreSQL 18.
-
-```bash
-cd backend
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS / Linux
-source .venv/bin/activate
-
-pip install -r requirements.txt
-cp .env.example .env        # then fill in DATABASE_URL and JWT_SECRET_KEY
-flask db upgrade
-flask seed                  # optional: load demo data
-flask run                   # starts on http://localhost:5000
-```
-
-**Environment variables** (see `backend/.env.example` for all keys):
-
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `JWT_SECRET_KEY` | Long random value used to sign JWTs |
-| `CORS_ORIGINS` | Comma-separated allowed origins (default `http://localhost:3000`) |
-| `SWAGGER_ENABLED` | `true` or `false`. Defaults to `true` in non-production, `false` in production |
-| `FLASK_ENV` | Set to `production` on Railway/Render; affects Swagger default |
-
-**Run tests:**
-```bash
-python -m pytest tests/api tests/database -q -p no:randomly
-```
-
-**API docs** (when `SWAGGER_ENABLED=true`): `http://localhost:5000/api/docs`
-
----
-
-## Frontend setup
-
-**Prerequisites:** Node.js 20.9+, npm 12+.
-
-```bash
-cd frontend
-npm install     # .npmrc sets allow-remote=all — required for Tailwind's optional WASM
-                # package on npm 12, which otherwise fails with EALLOWREMOTE
-cp .env.example .env.local   # then fill in the two API base URL variables
-```
-
-**Environment variables** (see `frontend/.env.example`):
-
-| Variable | Where used | Value |
-|---|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | Browser (compiled in) | API origin, e.g. `http://localhost:5000` — no trailing slash, no `/api` |
-| `API_BASE_URL` | Server Components | Same as above. Falls back to `NEXT_PUBLIC_API_BASE_URL` when unset |
-| `PLAYWRIGHT_BASE_URL` | E2E tests only | Frontend origin, e.g. `http://localhost:3000`. Not needed on Vercel |
-
-**Commands:**
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start the development server on `http://localhost:3000` |
-| `npm run build` | Run ESLint then build for production |
-| `npm test` | Run all Vitest unit tests |
-| `npm run typecheck` | TypeScript type check without emitting files |
-| `npm run test:e2e` | Run Playwright end-to-end tests (needs `PLAYWRIGHT_BASE_URL`) |
-
----
-
-## Deploying to Vercel
-
-1. Import the repository. Set **Root Directory** to `frontend`.
-2. Set these environment variables in the Vercel project settings:
-   - `NEXT_PUBLIC_API_BASE_URL` — the Railway/Render API URL, e.g. `https://my-api.railway.app` (no trailing slash, no `/api`)
-   - `API_BASE_URL` — the same value (Server Components use this; `NEXT_PUBLIC_*` variables are only available in browser code)
-3. `PLAYWRIGHT_BASE_URL` is not needed in Vercel. It is only used by the local E2E test runner.
-4. `NEXT_PUBLIC_*` values are compiled into the browser bundle at build time. A change requires a redeploy.
-5. After the first deployment, check the Vercel build log → install step:
-   - Confirm that `.npmrc` was read and `allow-remote=all` is active.
-   - If Vercel uses an npm version older than 12 it may warn about the unknown key; the install still succeeds.
-
-**CORS:** the backend `CORS_ORIGINS` must list the exact Vercel origin as `https://<host>` with no trailing slash and no path. Add `http://localhost:3000` for local development. Server Component requests are server-to-server and do not require a CORS entry. Each Vercel preview deployment has its own origin and needs its own entry.
+_Open._ The notes record that the frontend tests, the Playwright specs and the documentation were written in the Kiro IDE session, and the backend tests came from a sub-agent and the spec tasks. No Kiro CLI use is recorded, so none is claimed here. Add what you generated or refined with the CLI, which prompt you had to refine and what you fixed by hand.
 
 ---
 
@@ -197,8 +316,9 @@ cp .env.example .env.local   # then fill in the two API base URL variables
   steering/     database.md, backend.md, frontend.md (rule files), plus tool-usage, change-management, database-testing
   design-visual/ design.html (visual reference for the frontend)
 backend/
-  app/          Flask application (blueprints, models, migrations, config)
+  app/          Flask application (blueprints, models, migrations, config, openapi)
   tests/        API and database tests (pytest, PostgreSQL 18)
+  railway.json  Railway deployment config
 docs/
   violation_report.md   before/after steering comparison, 12 violations
   ai-workflow-notes.md  full AI workflow summary
@@ -213,4 +333,5 @@ frontend/
   context/      AuthContext
   types/        API payload types
   e2e/          Playwright specs
+  vercel.json   Vercel deployment config
 ```
